@@ -1,5 +1,7 @@
-import operator
 import warnings
+warnings.filterwarnings("ignore")
+
+import operator
 
 from sklearn.metrics import f1_score
 
@@ -10,7 +12,6 @@ from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
 
-warnings.filterwarnings("ignore")
 
 from DataPreprocessing.load_mat_data import load_mat_data
 
@@ -128,8 +129,11 @@ def train_and_predict(X_train, y_train, base_learners, method):
     if method == 'AdaBoost':
         clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
         clf.fit(X_train, y_train)
-    elif 'AdaAC' in method or 'AdaAPC' in method:
+    elif 'AdaAC' in method:
         clf = AdaAC(n_estimators=base_learners, algorithm=method, debug=True)
+        clf.fit(X_train, y_train)
+    elif 'AdaN-AC' in method:
+        clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), debug=True, amortised=False)
         clf.fit(X_train, y_train)
     elif 'RareBoost' in method:
         clf = RareBoost(n_estimators=base_learners, debug=True)
