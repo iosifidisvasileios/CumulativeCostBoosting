@@ -3,6 +3,7 @@ import time
 import warnings
 from itertools import combinations
 
+from Competitors.AdaMECal import AdaMEC
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
@@ -114,9 +115,31 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method):
     if method == 'AdaBoost':
         clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners)
         clf.fit(X_train, y_train)
-    elif 'AdaAC' in method or 'AdaAPC' in method:
+    elif 'AdaAC' in method:
         clf = AdaAC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
+
+    elif 'AdaMEC' in method:
+        counter_dict = Counter(list(y_train))
+
+        majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
+        minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
+        ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+
+        clf = AdaMEC(n_estimators=base_learners, algorithm=method)
+        clf.fit(X_train, y_train)
+        best_fscore = -1
+        best_idx = 0
+        for idx, cost in enumerate(ratios):
+            class_weight = {minority: 1, majority: cost / 10.}
+            clf.set_costs(y_train, class_weight)
+            fscore = f1_score(y_train, clf.predict(X_train))
+            if best_fscore < fscore:
+                best_idx = idx
+                best_fscore = fscore
+        class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
+        clf.set_costs(y_train, class_weight)
+
     elif 'RareBoost' in method:
         clf = RareBoost(n_estimators=base_learners)
         clf.fit(X_train, y_train)
@@ -210,8 +233,8 @@ def sig_scores(dataset_predictions, baseL, methods):
 if __name__ == '__main__':
     if not os.path.exists("Sig_temp_preds"):
         os.makedirs("Sig_temp_preds")
-    baselines = [25, 50, 100, 200]
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    baselines = [25, 50, 75, 100, 125, 150, 175, 200]
+    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2','AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
                             'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
@@ -223,6 +246,7 @@ if __name__ == '__main__':
         dataset_predictions = []
 
         for dataset in datasets_list:
+            print(dataset, baseL)
             dataset_predictions.append(run_eval(dataset=dataset, baseL=baseL, methods=list_of_methods))
 
         sig_scores(dataset_predictions, baseL, list_of_methods)
