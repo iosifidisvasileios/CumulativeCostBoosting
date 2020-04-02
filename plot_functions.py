@@ -131,6 +131,29 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
         plt.savefig(output_dir + metric_index + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
 
+
+def plot_amort_vs_non_amort(methods, results, baseL, directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round']:
+        plt.figure(figsize=(7, 7))
+        plt.grid(True)
+        plt.rcParams.update({'font.size': 10.5})
+        for k in range(0, len(methods)):
+            res = results[k][i]
+            steps = numpy.arange(0, len(res), step=1)
+            plt.plot(steps, res, '-', label=methods[k], linewidth=1, color=colors[k])
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.065), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
+        plt.xlabel('Round')
+        plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
+                    fancybox=True, framealpha=.30)
+
+
+
+
 def plot_costs_per_round(methods, results, baseL, directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -199,6 +222,35 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                 plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.145), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
+        plt.xlabel('Round')
+        plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
+                    fancybox=True, framealpha=.30)
+
+def plot_costs_per_round_all_datasets_amort_vs_non_amort(methods, results, directory, baseL):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round']:
+        steps = numpy.arange(0, baseL, step=1)
+        plt.figure(figsize=(7, 7))
+        plt.grid(True)
+        plt.rcParams.update({'font.size': 10.5})
+
+        for jj in range(0, len(methods)):
+            res = numpy.array([0. for j in range(0, baseL)])
+            for k in results:
+                if res.shape[0] != numpy.array(k[jj][i]).shape[0]:
+                    temp_list = list(numpy.array(k[jj][i]))
+                    for missing in range(0, res.shape[0] - numpy.array(k[jj][i]).shape[0]):
+                        temp_list.append(temp_list[-1])
+                    res += numpy.array(temp_list) / float(len(results))
+                else:
+                    res += numpy.array(k[jj][i]) / float(len(results))
+            plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.065), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')
         plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
                     fancybox=True, framealpha=.30)

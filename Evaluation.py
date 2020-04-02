@@ -1,4 +1,5 @@
 import warnings
+warnings.filterwarnings("ignore")
 
 
 from Competitors.AdaMECal import AdaMEC
@@ -7,7 +8,6 @@ from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
 
-warnings.filterwarnings("ignore")
 
 from Competitors.RareBoost import RareBoost
 from DataPreprocessing.load_mat_data import load_mat_data
@@ -166,6 +166,18 @@ def train_and_predict(X_train, y_train, X_test, max_base_learners, method, cl_na
             pickle.dump(list_of_results, filehandle)
         return
 
+    elif 'AdaN-AC' in method:
+
+        clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), amortised=False)
+        clf.fit(X_train, y_train)
+        list_of_results = []
+        for baselines in max_base_learners:
+            clf.set_classifiers(baselines)
+            list_of_results.append(clf.predict(X_test))
+        with open('temp_preds/' + method, 'wb') as filehandle:
+            pickle.dump(list_of_results, filehandle)
+        return
+
     elif 'AdaMEC' in method:
         counter_dict = Counter(list(y_train))
 
@@ -294,6 +306,7 @@ if __name__ == '__main__':
     dicts_for_plots = []
 
     list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaN-AC1', 'AdaN-AC2']
     # list_of_methods = ['AdaMEC']
 
     datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
@@ -301,7 +314,6 @@ if __name__ == '__main__':
                             'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
                             'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
-
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
