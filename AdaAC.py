@@ -41,6 +41,7 @@ __all__ = [
     'AdaAC',
 ]
 
+from sklearn.metrics import confusion_matrix
 
 class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
     """Base class for AdaBoost estimators.
@@ -129,6 +130,12 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         self.training_error = []
         self._class_weights_pos = []
         self._class_weights_neg = []
+
+        self._tpr = []
+        self._tnr = []
+        self._standard_error = []
+
+
         self.classifiers = None
         self.estimators_ = []
         self.estimator_alphas_ = np.zeros(self.n_estimators, dtype=np.float64)
@@ -370,7 +377,7 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
             Returns self.
         """
         # Check that algorithm is supported
-        if self.algorithm not in ('AdaAC1', 'AdaAC2', 'AdaAPC1', 'AdaAPC2'):
+        if self.algorithm not in ('AdaAC1', 'AdaAC2'):
             raise ValueError("algorithm %s is not supported" % self.algorithm)
 
         # Fit
@@ -433,7 +440,7 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
 
         # Error fraction
         estimator_error = np.mean(np.average(incorrect, weights=sample_weight, axis=0))
-
+        # print(iboost, estimator_error)
         # Stop if classification is perfect
         if estimator_error <= 0:
             return sample_weight, 1., 0.
@@ -458,11 +465,17 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
             self.calculate_cost(X, y, y_predict)
 
         if self.debug:
-            self.training_error.append(1 - balanced_accuracy_score(y, self.predict(X)))
+            # self.training_error.append(1 - accuracy_score(y, self.predict(X)))
             self.cost_pos.append(self.cost_positive)
             self.cost_neg.append(self.cost_negative)
             self._class_weights_pos.append(sample_weight[y == 1].sum())
             self._class_weights_neg.append(sample_weight[y != 1].sum())
+            tn, fp, fn, tp  =confusion_matrix(y, self.predict(X), labels=[0, 1] ).ravel()
+            self._tpr.append((float(tp))/(tp + fn))
+            self._tnr.append((float(tn))/(tn + fp))
+            self.training_error.append(1.- float(tp+tn)/(tp + tn +fp +fn))
+
+
 
         if not iboost == self.n_estimators - 1:
 
