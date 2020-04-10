@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
@@ -26,8 +24,8 @@ matplotlib.use('Agg')
 import numpy
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, 'DataPreprocessing')
 
+sys.path.insert(0, 'DataPreprocessing')
 
 def load_datasets(dataset, names):
     if dataset == "wilt":
@@ -93,91 +91,68 @@ list_of_stats = []
 for dataset in datasets_list:
     list_of_stats.append(load_datasets(dataset, dataset_names))
 
-accuracy = []
-gmean = []
-f1score = []
-recall = []
-balanced_accuracy = []
-opm = []
+logs = open("Evaluation.log", "r")
 
-list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
-                   'RareBoost']
-measures = ['accuracy', 'gmean', 'f1score', 'recall', 'balanced_accuracy', 'opm']
-
-for baseL_index in range(1, 9):
-    for item in measures:
-        logs = open("Evaluation.log", "r")
-        new_dataset = False
+new_dataset = False
+performance_flag = False
+list_of_performance = []
+dataset_performance = dict()
+cnt = 0
+for line in logs:
+    if line.split("\t")[0] in dataset_names:
         performance_flag = False
-        list_of_performance = []
-        dataset_performance = dict()
-        cnt = 0
-        for line in logs:
-            if line.split("\t")[0] in dataset_names:
-                performance_flag = False
-                continue
 
-            if line.startswith(item):
-                performance_flag = True
-                continue
+    if line.startswith("balanced_accuracy"):
+        performance_flag = True
+        continue
 
-            if performance_flag:
-                tempList = line.replace("\n", "").split(",")
-                if tempList[0] in list_of_methods:
-                    dataset_performance[tempList[0]] = float(tempList[baseL_index].split(" ")[0]) / 100.
-                    if line.startswith('RareBoost'):
-                        list_of_performance.append(dataset_performance)
-                        dataset_performance = dict()
-                        performance_flag = False
+    if performance_flag:
+        tempList = line.replace("\n","").split(",")
+        dataset_performance[tempList[0]] = float(tempList[-1].split(" ")[0])/100.
+        if line.startswith('RareBoost'):
+            list_of_performance.append(dataset_performance)
+            dataset_performance = dict()
+            performance_flag = False
 
-        logs.close()
+opt_for = "feat"
+if opt_for == "class":
+    ranked_stats = [x[2] for x in list_of_stats]
+elif opt_for == "feat":
+    ranked_stats = [x[1] for x in list_of_stats]
+elif opt_for == "inst":
+    ranked_stats = [x[0] for x in list_of_stats]
 
-        ranked_stats = defaultdict(int)
-        for dict_measure in list_of_performance:
-            list_ranked = sorted(dict_measure.items(), key=lambda x: x[1], reverse=True)
-            for idx_rank, ranking in enumerate(list_ranked):
-                ranked_stats[ranking[0]] += (idx_rank + 1) / float(len(list_of_stats))
-
-        if item == 'accuracy':
-            accuracy.append(ranked_stats)
-        elif item == 'gmean':
-            gmean.append(ranked_stats)
-        elif item == 'f1score':
-            f1score.append(ranked_stats)
-        elif item == 'recall':
-            recall.append(ranked_stats)
-        elif item == 'balanced_accuracy':
-            balanced_accuracy.append(ranked_stats)
-        elif item == 'opm':
-            opm.append(ranked_stats)
-
-        # print(item, baseL_index, ranked_stats)
+indexes = list(numpy.argsort(ranked_stats))
+ranked_x = list(numpy.sort(ranked_stats))
+ranked_y = [list_of_performance[i] for i in indexes]
 
 
-def plot_data(list_of_measures, output_dir, filename):
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
-                       'RareBoost']
+def plot_data(ranked_x, ranked_y, output_dir, filename):
+    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
     list_of_results = [[] for i in list_of_methods]
 
-    for dict_temp in list_of_measures:
+    for item in ranked_y:
         for idx, method in enumerate(list_of_methods):
-            list_of_results[idx].append(dict_temp[method])
+            list_of_results[idx].append(item[method])
 
     plt.figure(figsize=(10, 10))
     plt.rcParams.update({'font.size': 12})
     plt.grid()
     # plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
-
+    plt.xscale('log')
     plt.grid(True, axis='y')
 
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    plt.ylabel('Rank')
+    plt.ylabel('%')
+    if filename == "class_based":
+        plt.xlabel("Class Imbalance Ratio")
+    elif filename == "feat_based":
+        plt.xlabel("Number of Features")
+    elif filename == "inst_based":
+        plt.xlabel("Number of Instances")
 
-    plt.xlabel("Weak learners")
-
-    x_ticks = [25, 50, 75, 100, 125, 150, 175, 200]
     for i in range(0, len(list_of_methods)):
-        plt.plot(x_ticks, list_of_results[i], label=list_of_methods[i], color=colors[i])
+        plt.plot(ranked_x, list_of_results[i], label=list_of_methods[i], color=colors[i])
 
     plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
 
@@ -188,22 +163,14 @@ def plot_data(list_of_measures, output_dir, filename):
     plt.clf()
 
 
-plot_data(accuracy, 'Images/Ranking/', 'rank_accuracy')
-plot_data(gmean, 'Images/Ranking/', 'rank_gmean')
-plot_data(f1score, 'Images/Ranking/', 'rank_f1score')
-plot_data(recall, 'Images/Ranking/', 'rank_recall')
-plot_data(balanced_accuracy, 'Images/Ranking/', 'rank_balanced_accuracy')
-plot_data(opm, 'Images/Ranking/', 'rank_opm')
+if opt_for == "class":
+    plot_data(ranked_x, ranked_y, "Images/", "class_based")
 
-#
-# if opt_for == "class":
-#     plot_data(ranked_x, ranked_y, "Images/", "class_based")
-#
-# elif opt_for == "feat":
-#     plot_data(ranked_x, ranked_y, "Images/", "feat_based")
-#
-# elif opt_for == "inst":
-#     plot_data(ranked_x, ranked_y, "Images/", "inst_based")
-#
-#
-#
+elif opt_for == "feat":
+    plot_data(ranked_x, ranked_y, "Images/", "feat_based")
+
+elif opt_for == "inst":
+    plot_data(ranked_x, ranked_y, "Images/", "inst_based")
+
+
+

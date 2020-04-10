@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import matplotlib
+from cycler import cycler
 from imblearn import metrics
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -28,7 +29,7 @@ def calculate_performance(labels, predictions):
     tn, fp, fn, tp = confusion_matrix(labels, predictions[0]).ravel()
     output["tpr"] = float(tp) / (float(tp) + float(fn))
     output["tnr"] = float(tn) / (float(tn) + float(fp))
-    output["opm"] = (output['gmean'] + output['balanced_accuracy'] + output['f1score'] + output['recall'] + output["accuracy"] ) / 5.
+    output["opm"] = (output['gmean'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 5.
 
     return output
 
@@ -38,6 +39,55 @@ def calculate_fscore(labels, predictions):
     output["f1score"] = f1_score(labels, predictions)
 
     return output
+
+
+def plot_resource_stats_time(methods, list_of_dicts_stats, output_dir, baseL):
+    print("time," + ",".join([str(p) for p in baseL]))
+
+    plt.figure(figsize=(10, 10))
+    plt.rcParams.update({'font.size': 12})
+    plt.grid()
+    plt.yscale('log')
+
+    plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
+    plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10)),
+                                        (0, (5, 1)),
+                                        '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))])
+
+                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+    plt.rc('axes', prop_cycle=default_cycler)
+
+    plt.grid(True, axis='y')
+
+    plt.ylabel('Seconds')
+    plt.xlabel("Weak Learners")
+
+    for i in range(0, len(methods)):
+        y_values = []
+        for weak_learners in baseL:
+            y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners]['time']))
+
+        plt.plot(numpy.arange(len(baseL)), y_values, label=methods[i], markersize=12.5)
+
+        my_string = methods[i]
+
+        for pp in range(0, len(baseL)):
+            my_string += "," + str(float("%0.2f" % (y_values[pp])))
+
+        print(my_string)
+
+    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    plt.savefig(output_dir +  "time.png", bbox_inches='tight', dpi=200)
 
 
 def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
@@ -51,10 +101,20 @@ def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
         plt.grid()
         plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
         plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        default_cycler = (cycler(color=colors) +
+                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)),
+                                            (0, (5, 1)),
+                                            '-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10))])
+
+                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+        plt.rc('axes', prop_cycle=default_cycler)
 
         plt.grid(True, axis='y')
 
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+        # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
         plt.ylabel('%')
         plt.xlabel("Weak Learners")
         for i in range(0, len(list_of_names)):
@@ -64,7 +124,7 @@ def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
                 y_values.append(numpy.mean(list_of_dicts[i][weak_learners][item]))
                 std_values.append(numpy.std(list_of_dicts[i][weak_learners][item]))
 
-            plt.plot(numpy.arange(len(baseL)), y_values, label=list_of_names[i], color=colors[i])
+            plt.plot(numpy.arange(len(baseL)), y_values, label=list_of_names[i], markersize=12.5)
 
             my_string = list_of_names[i]
             for pp in range(0, len(baseL)):
@@ -80,7 +140,6 @@ def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
         plt.savefig(output_dir + item + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
 
-
 def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
     metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy']
 
@@ -95,10 +154,20 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
         plt.grid()
         plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
         plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        default_cycler = (cycler(color=colors) +
+                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)),
+                                            (0, (5, 1)),
+                                            '-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10))])
+
+                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+        plt.rc('axes', prop_cycle=default_cycler)
 
         plt.grid(True, axis='y')
 
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+        # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
         plt.ylabel('%')
         plt.xlabel("Weak Learners")
 
@@ -119,7 +188,7 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
             y_values = [sum(x) / len(x) for x in zip(*y_values)]
             std_values = [sum(x) / len(x) for x in zip(*std_values)]
 
-            plt.plot(numpy.arange(len(baseL)), y_values, label=method_names[method_index], color=colors[method_index])
+            plt.plot(numpy.arange(len(baseL)), y_values, label=method_names[method_index], markersize=12.5)
             my_string = method_names[method_index]
 
             for pp in range(0, len(baseL)):
@@ -130,6 +199,168 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
         plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
         plt.savefig(output_dir + metric_index + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
+
+
+def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, baseL):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    print("time," + ",".join([str(p) for p in baseL]))
+
+    plt.figure(figsize=(10, 10))
+    plt.rcParams.update({'font.size': 12})
+    plt.grid()
+    plt.yscale('log')
+    plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
+    plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10)),
+                                        (0, (5, 1)),
+                                        '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))])
+
+                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+    plt.rc('axes', prop_cycle=default_cycler)
+
+    plt.grid(True, axis='y')
+
+    plt.ylabel('Seconds')
+    plt.xlabel("Weak Learners")
+
+    for method_index in range(0, len(methods)):
+        y_values = []
+        for dataset_index in range(0, len(list_of_dicts_stats)):
+            per_dataset_avg = []
+            for weak_learners in baseL:
+                per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners]['time']))
+
+            y_values.append(per_dataset_avg)
+
+        y_values = [sum(x) / len(x) for x in zip(*y_values)]
+
+        plt.plot(numpy.arange(len(baseL)), y_values, label=methods[method_index], markersize=12.5)
+
+        my_string = methods[method_index]
+        for pp in range(0, len(baseL)):
+            my_string += "," + str(float("%0.2f" % (y_values[pp])))
+
+        print(my_string)
+
+    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    plt.savefig(output_dir +  "time.png", bbox_inches='tight', dpi=200)
+
+
+def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
+    for item in ['score', 'ratio']:
+        print(item + "," + ",".join([str(p) for p in baseL]))
+
+        plt.figure(figsize=(10, 10))
+        plt.rcParams.update({'font.size': 12})
+        plt.grid()
+        plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
+        plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+
+        plt.grid(True, axis='y')
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        default_cycler = (cycler(color=colors) +
+                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)),
+                                            (0, (5, 1)),
+                                            '-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10))])
+
+                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+        plt.rc('axes', prop_cycle=default_cycler)
+
+        plt.ylabel('%')
+        plt.xlabel("Weak Learners")
+
+        for i in range(0, len(methods)):
+            if methods[i] in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+                continue
+            y_values = []
+            for weak_learners in baseL:
+                if item == 'ratio':
+                    y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners][item])/10)
+                else:
+                    y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners][item]))
+
+            plt.plot(numpy.arange(len(baseL)), y_values, label=methods[i], markersize=12.5)
+
+            my_string = methods[i]
+
+            for pp in range(0, len(baseL)):
+                my_string += "," + str(float("%0.2f" % (y_values[pp] )))
+
+            print(my_string)
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        plt.savefig(output_dir +  item + ".png", bbox_inches='tight', dpi=200)
+
+def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for item in ['score', 'ratio']:
+        print(item + "," + ",".join([str(p) for p in baseL]))
+
+        plt.figure(figsize=(10, 10))
+        plt.rcParams.update({'font.size': 12})
+        plt.grid()
+        plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
+        plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        default_cycler = (cycler(color=colors) +
+                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)),
+                                            (0, (5, 1)),
+                                            '-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10))])
+
+                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+        plt.rc('axes', prop_cycle=default_cycler)
+
+        plt.grid(True, axis='y')
+
+        plt.ylabel('%')
+        plt.xlabel("Weak Learners")
+
+        for method_index in range(0, len(methods)):
+            if methods[method_index] in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+                continue
+            y_values = []
+            for dataset_index in range(0, len(list_of_dicts_stats)):
+                per_dataset_avg = []
+                for weak_learners in baseL:
+                    if item == 'ratio':
+                        per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item])/10)
+                    else:
+                        per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item]))
+
+                y_values.append(per_dataset_avg)
+
+            y_values = [sum(x) / len(x) for x in zip(*y_values)]
+
+            plt.plot(numpy.arange(len(baseL)), y_values, label=methods[method_index], markersize=12.5)
+
+            my_string = methods[method_index]
+            for pp in range(0, len(baseL)):
+                my_string += "," + str(float("%0.2f" % (y_values[pp])))
+
+            print(my_string)
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+
+        plt.savefig(output_dir +  item + ".png", bbox_inches='tight', dpi=200)
+
 
 
 def plot_amort_vs_non_amort(methods, results, baseL, directory):
@@ -188,13 +419,23 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+    # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
 
     for i in ['pos_class_weights', 'neg_class_weights', 'bal_err', 'alpha']:
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo']
+        default_cycler = (cycler(color=colors) +
+                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)),
+                                            (0, (5, 1)),
+                                            '-', (0, (1, 1)), '--', '-.',
+                                            (0, (5, 10)), (0, (1, 1))]))
+
+        plt.rc('axes', prop_cycle=default_cycler)
+
 
         for jj in range(0, len(methods)):
             if methods[jj] == 'RareBoost' and i == 'alpha':
@@ -206,8 +447,8 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                     res_neg += numpy.array(k[jj]['alpha_negative']) / float(len(results))
 
                 steps = numpy.arange(0, len(res_pos), step=1)
-                plt.plot(steps, res_pos, '-', label=methods[jj] + "-Pos.", linewidth=1, color=colors[jj])
-                plt.plot(steps, res_neg, '-', label=methods[jj] + "-Neg.", linewidth=1, color=colors[jj + 1])
+                plt.plot(steps, res_pos,  label=methods[jj] + "-Pos." )
+                plt.plot(steps, res_neg,  label=methods[jj] + "-Neg." )
 
             else:
                 res = numpy.array([0. for j in range(0, baseL)])
@@ -219,7 +460,8 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                         res += numpy.array(temp_list) / float(len(results))
                     else:
                         res += numpy.array(k[jj][i]) / float(len(results))
-                plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
+                # plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
+                plt.plot(steps, res,  label=methods[jj])
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.145), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')

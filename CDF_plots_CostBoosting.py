@@ -1,5 +1,7 @@
 import warnings
 
+from cycler import cycler
+
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
@@ -119,6 +121,18 @@ def run_eval(dataset, base_learners, methods):
     num_bins = 40
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(20, 4))
     plt.rcParams.update({'font.size': 12})
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10)),
+                                        (0, (5, 1)),
+                             '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))]))
+
+    ax1.set_prop_cycle(default_cycler)
+    ax2.set_prop_cycle(default_cycler)
+    ax3.set_prop_cycle(default_cycler)
+
     ax1.set_title("Positive CDF")
     ax1.grid(True)
     ax1.set_xlim(-1, 1)
@@ -133,8 +147,8 @@ def run_eval(dataset, base_learners, methods):
         pos_conf = positive_confs[idx]
         counts_positives, bin_edges_positives = numpy.histogram(pos_conf, bins=num_bins, normed=True)
         cdf_positives = numpy.cumsum(counts_positives)
-        ax1.plot(bin_edges_positives[:-1], cdf_positives / cdf_positives[-1], label=methods[idx],
-                 color=colors[idx])
+        # ax1.plot(bin_edges_positives[:-1], cdf_positives / cdf_positives[-1], label=methods[idx],color=colors[idx])
+        ax1.plot(bin_edges_positives[:-1], cdf_positives / cdf_positives[-1], label=methods[idx])
         output[methods[idx]].append(bin_edges_positives[:-1])
         output[methods[idx]].append(cdf_positives)
 
@@ -159,8 +173,8 @@ def run_eval(dataset, base_learners, methods):
         neg_conf = negative_confs[idx]
         counts_negatives, bin_edges_negatives = numpy.histogram(neg_conf, bins=num_bins, normed=True)
         cdf_negatives = numpy.cumsum(counts_negatives)
-        ax2.plot(bin_edges_negatives[:-1], cdf_negatives / cdf_negatives[-1], label=methods[idx],
-                 color=colors[idx])
+        # ax2.plot(bin_edges_negatives[:-1], cdf_negatives / cdf_negatives[-1], label=methods[idx],color=colors[idx])
+        ax2.plot(bin_edges_negatives[:-1], cdf_negatives / cdf_negatives[-1], label=methods[idx])
         output[methods[idx]].append(bin_edges_negatives[:-1])
         output[methods[idx]].append(cdf_negatives)
 
@@ -178,8 +192,8 @@ def run_eval(dataset, base_learners, methods):
         over_conf = overall_confs[idx]
         counts_overall, bin_edges_overall = numpy.histogram(over_conf, bins=num_bins, normed=True)
         cdf_overall = numpy.cumsum(counts_overall)
-        ax3.plot(bin_edges_overall[:-1], cdf_overall / cdf_overall[-1], label=methods[idx],
-                 color=colors[idx])
+        # ax3.plot(bin_edges_overall[:-1], cdf_overall / cdf_overall[-1], label=methods[idx], color=colors[idx])
+        ax3.plot(bin_edges_overall[:-1], cdf_overall / cdf_overall[-1], label=methods[idx])
         output[methods[idx]].append(bin_edges_overall[:-1])
         output[methods[idx]].append(cdf_overall)
 
@@ -239,6 +253,18 @@ def plot_overall_data(method_names, list_dataset_dicts, base_learners, output_di
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(20, 4))
     plt.rcParams.update({'font.size': 12})
 
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10)),
+                                        (0, (5, 1)),
+                             '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))]))
+
+    ax1.set_prop_cycle(default_cycler)
+    ax2.set_prop_cycle(default_cycler)
+    ax3.set_prop_cycle(default_cycler)
+
     ax1.set_xlim(-1, 1)
     ax2.set_xlim(-1, 1)
     ax3.set_xlim(-1, 1)
@@ -261,7 +287,7 @@ def plot_overall_data(method_names, list_dataset_dicts, base_learners, output_di
     ax3.set_title("Overall CDF")
     ax3.set_ylabel("Cumulative Distribution")
     ax3.set_xlabel("Margin")
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+    # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -290,10 +316,13 @@ def plot_overall_data(method_names, list_dataset_dicts, base_learners, output_di
         avg_cdf_neg = [sum(x) / len(x) for x in zip(*avg_cdf_neg)]
         avg_edges_overall = [sum(x) / len(x) for x in zip(*avg_edges_overall)]
         avg_cdf_overall = [sum(x) / len(x) for x in zip(*avg_cdf_overall)]
-
-        ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx, color=colors[cnt])
-        ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx, color=colors[cnt])
-        ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx, color=colors[cnt])
+        #
+        # ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx, color=colors[cnt])
+        # ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx, color=colors[cnt])
+        # ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx, color=colors[cnt])
+        ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx )
+        ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx )
+        ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx )
         cnt += 1
 
     plt.legend(loc='upper center', bbox_to_anchor=(-0.7, 1.305), ncol=5)
@@ -310,14 +339,18 @@ if __name__ == '__main__':
         os.makedirs("temp")
 
     list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
-
-    datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-                            'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
+    #
+    # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
+    #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
+    #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
+    #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+    #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+    datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                            'abalone', 'car_eval_34', 'letter_img',
+                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
                             'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                            'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
-
-    for baseL in [25, 50, 100, 200]:
+                            'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+    for baseL in [25, 200]:
         overall_list = []
         for dataset in datasets_list:
             print(dataset, baseL)

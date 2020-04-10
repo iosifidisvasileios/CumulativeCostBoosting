@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+from time import process_time
 
 from Competitors.AdaMECal import AdaMEC
 from DataPreprocessing.load_diabetes import load_diabetes
@@ -18,7 +19,7 @@ import os, sys
 import operator
 from multiprocessing import Process
 from imblearn import datasets
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, balanced_accuracy_score
 from sklearn.model_selection import StratifiedKFold
 import time
 from AdaAC import AdaAC
@@ -32,20 +33,34 @@ from DataPreprocessing.load_skin import load_skin
 from DataPreprocessing.load_credit import load_credit
 from DataPreprocessing.load_kdd import load_kdd
 from DataPreprocessing.load_bank import load_bank
-from plot_functions import calculate_performance, plot_single_dataset, plot_overall_data
+from plot_functions import calculate_performance, plot_single_dataset, plot_overall_data, plot_resource_stats_time, \
+    plot_resource_stats_scores, plot_overall_resource_stats_time, plot_overall_resource_stats_scores
 
 sys.path.insert(0, 'DataPreprocessing')
 
 
-def update_stats(new_stats, output, iterations):
+def update_performance_stats(new_stats, output, iterations):
     for i in new_stats:
         output[iterations][i].append(new_stats[i])
     return output
 
 
+def update_resource_stats(new_stats, output, iterations, method):
+    output[iterations]['time'].append(new_stats[0])
+    if method not in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+        output[iterations]['score'].append(new_stats[1])
+        output[iterations]['ratio'].append(new_stats[2])
+
+    return output
+
+
+
 def print_stats(names, stats):
     for i in range(0, len(names)):
         print(names[i] + " " + str(stats[i]))
+
+
+
 
 
 def run_eval(dataset, folds, iterations, baseL, methods):
@@ -97,85 +112,107 @@ def run_eval(dataset, folds, iterations, baseL, methods):
         f'{len(abs(y[y != 1])):,}') + "\t1:" + str(format(len(abs(y[y != 1])) / sum(y[y == 1]), '.2f')))
 
     list_of_dicts = []
+    list_of_dicts_stats = []
 
     for t_dict in range(0, len(methods)):
         list_of_dicts.append(defaultdict(dict))
+        list_of_dicts_stats.append(defaultdict(dict))
 
     for weak_learners in baseL:
         for item in list_of_dicts:
             item[weak_learners] = defaultdict(list)
 
+    for weak_learners in baseL:
+        for item in list_of_dicts_stats:
+            item[weak_learners] = defaultdict(list)
+
+    cnt = 0
+
     for samples in range(0, iterations):
-        cnt = 0
+        print("iteration=", samples)
 
         sss = StratifiedKFold(n_splits=folds, shuffle=True, random_state=int(time.time()))
-        # for weak_learners in baseL:
-        for train_index, test_index in sss.split(X, y):
-            print("iteration=", samples, " fold=", cnt)
-            cnt += 1
+        for weak_learners in baseL:
 
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            processes = []
-            for method in methods:
-                p = Process(target=train_and_predict,
-                            args=(X_train, y_train, X_test, baseL, method, cl_names))
-                p.start()
-                processes.append(p)
+            # for weak_learners in baseL:
+            for train_index, test_index in sss.split(X, y):
+                cnt += 1
 
-            for p in processes:
-                p.join()
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                processes = []
+                for method in methods:
+                    p = Process(target=train_and_predict,
+                                args=(X_train, y_train, X_test, weak_learners, method, cl_names))
+                    p.start()
+                    processes.append(p)
 
-            for index, method in enumerate(methods):
-                with open('temp_preds/' + method, 'rb') as filehandle:
-                    for idx, results in enumerate(pickle.load(filehandle)):
-                        list_of_dicts[index] = update_stats(
-                            calculate_performance(y_test, [results]),
-                            list_of_dicts[index],
-                            baseL[idx]
-                        )
+                for p in processes:
+                    p.join()
 
+                for index, method in enumerate(methods):
+                    with open('temp_preds/' + method, 'rb') as filehandle:
+                        list_of_dicts[index] = update_performance_stats(calculate_performance(y_test, [pickle.load(filehandle)]),
+                                                                        list_of_dicts[index],
+                                                                        weak_learners
+                                                                        )
+
+                    with open('temp_preds/stats_' + method, 'rb') as filehandle:
+                        list_of_dicts_stats[index] = update_resource_stats(pickle.load(filehandle),
+                                                                        list_of_dicts_stats[index],
+                                                                        weak_learners,
+                                                                        method
+                                                                        )
     plot_single_dataset(methods, list_of_dicts, "Images/Performance/" + dataset + "/", baseL)
-    return list_of_dicts
+    plot_resource_stats_time(methods, list_of_dicts_stats, "Images/Performance/" + dataset + "/Resource/", baseL)
+    plot_resource_stats_scores(methods, list_of_dicts_stats, "Images/Performance/" + dataset + "/Resource/", baseL)
+    return list_of_dicts, list_of_dicts_stats
 
 
-def train_and_predict(X_train, y_train, X_test, max_base_learners, method, cl_names):
-
-    base_learners = max_base_learners[-1]
+def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names):
     if method == 'AdaBoost':
-
+        t1_start = process_time()
         clf = AdaCost(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
-        list_of_results = []
-        for baselines in max_base_learners:
-            clf.set_classifiers(baselines)
-            list_of_results.append(clf.predict(X_test))
+        t1_stop = process_time()
+        oveall_time = t1_stop - t1_start
+
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
+            pickle.dump([oveall_time], filehandle)
+
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
     elif 'AdaAC' in method:
+        t1_start = process_time()
 
         clf = AdaAC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
-        list_of_results = []
-        for baselines in max_base_learners:
-            clf.set_classifiers(baselines)
-            list_of_results.append(clf.predict(X_test))
+        t1_stop = process_time()
+        oveall_time = t1_stop - t1_start
+
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
+            pickle.dump([oveall_time], filehandle)
+
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
     elif 'AdaN-AC' in method:
+        t1_start = process_time()
 
         clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), amortised=False)
         clf.fit(X_train, y_train)
-        list_of_results = []
-        for baselines in max_base_learners:
-            clf.set_classifiers(baselines)
-            list_of_results.append(clf.predict(X_test))
+
+        t1_stop = process_time()
+        oveall_time = t1_stop - t1_start
+
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
+            pickle.dump([oveall_time], filehandle)
+
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
     elif 'AdaMEC' in method:
@@ -184,40 +221,45 @@ def train_and_predict(X_train, y_train, X_test, max_base_learners, method, cl_na
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+        t1_start = process_time()
 
-        processes = []
-        for base_learner_amount in max_base_learners:
-            p = Process(target=train_adamec_competitor,
-                        args=(X_train, y_train, base_learner_amount, method, majority, minority, ratios))
-            p.start()
-            processes.append(p)
-        for p in processes:
-            p.join()
+        clf = AdaMEC(n_estimators=base_learners, algorithm=method)
+        clf.fit(X_train, y_train)
+        best_bal_acc = -1
+        best_idx = 0
+        for idx, cost in enumerate(ratios):
+            class_weight = {minority: 1, majority: cost / 10.}
+            clf.set_costs(y_train, class_weight)
+            bal_acc = balanced_accuracy_score(y_train, clf.predict(X_train))
+            if best_bal_acc < bal_acc:
+                best_idx = idx
+                best_bal_acc = bal_acc
+        class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
+        clf.set_costs(y_train, class_weight)
 
-        list_of_results = []
+        t1_stop = process_time()
+        oveall_time = t1_stop - t1_start
 
-        for base_learner_amount in max_base_learners:
-            if os.path.exists('temp_preds/' + method + str(base_learner_amount)):
-                with open('temp_preds/' + method + str(base_learner_amount), 'rb') as filehandle:
-                    clf = pickle.load(filehandle)
-                    list_of_results.append(clf.predict(X_test))
-
-            if os.path.exists('temp_preds/' + method + str(base_learner_amount)):
-                os.remove('temp_preds/' + method + str(base_learner_amount))
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
+            pickle.dump([oveall_time, best_bal_acc, ratios[best_idx] ], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
     elif method == 'RareBoost':
+        t1_start = process_time()
+
         clf = RareBoost(n_estimators=base_learners)
         clf.fit(X_train, y_train)
-        list_of_results = []
-        for baselines in max_base_learners:
-            clf.set_classifiers(baselines)
-            list_of_results.append(clf.predict(X_test))
+        t1_stop = process_time()
+        oveall_time = t1_stop-t1_start
+
+        with open('temp_preds/stats_' + method , 'wb') as filehandle:
+            pickle.dump([oveall_time], filehandle)
+
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
     else:
@@ -235,63 +277,46 @@ def train_and_predict(X_train, y_train, X_test, max_base_learners, method, cl_na
             processes.append(p)
         for p in processes:
             p.join()
-        best_ratio = -1
 
+
+        best_score = -1
+        best_ratio = 0
+        oveall_time = 0
         for ratio in ratios:
             if os.path.exists('temp_preds/' + method + str(ratio)):
                 with open('temp_preds/' + method + str(ratio), 'rb') as filehandle:
                     temp = pickle.load(filehandle)
-                    if temp[0] > best_ratio:
-                        best_ratio = temp[0]
+                    oveall_time += temp[2]
+                    if temp[0] > best_score:
+                        best_ratio = ratio
+                        best_score = temp[0]
                         clf = temp[1]
 
             if os.path.exists('temp_preds/' + method + str(ratio)):
                 os.remove('temp_preds/' + method + str(ratio))
 
-        list_of_results = []
-        for baselines in max_base_learners:
-            clf.set_classifiers(baselines)
-            list_of_results.append(clf.predict(X_test))
+        with open('temp_preds/stats_' + method , 'wb') as filehandle:
+            pickle.dump([oveall_time, best_score, best_ratio], filehandle)
+
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(list_of_results, filehandle)
+            pickle.dump(clf.predict(X_test), filehandle)
         return
 
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
-
     try:
         out = []
+        t1_start = process_time()
         clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
         clf.fit(X_train, y_train)
-        out.append(f1_score(y_train, clf.predict(X_train)))
+        t1_stop = process_time()
+
+        out.append(balanced_accuracy_score(y_train, clf.predict(X_train)))
         out.append(clf)
+        out.append(t1_stop-t1_start)
         with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
     except:
         return
-
-
-def train_adamec_competitor(X_train, y_train, base_learners, method, maj, min, ratios):
-    # set_proctitle(method + "_" + str(base_learners))
-
-    clf = AdaMEC(n_estimators=base_learners, algorithm=method)
-    clf.fit(X_train, y_train)
-    best_fscore = -1
-    best_idx = 0
-    for idx, cost in enumerate(ratios):
-        class_weight = {min: 1, maj: cost / 10.}
-        clf.set_costs(y_train, class_weight)
-        fscore = f1_score(y_train, clf.predict(X_train))
-        if best_fscore < fscore:
-            best_idx = idx
-            best_fscore = fscore
-    class_weight = {min: 1, maj: ratios[best_idx] / 10.}
-    clf.set_costs(y_train, class_weight)
-
-    with open('temp_preds/' + method + str(base_learners), 'wb') as filehandle:
-        pickle.dump(clf, filehandle)
-    return
-
-
 
 
 if __name__ == '__main__':
@@ -303,24 +328,36 @@ if __name__ == '__main__':
         os.makedirs("Images/Performance/")
 
     baseL = [25, 50, 75, 100, 125, 150, 175, 200]
+    # baseL = [5, 10, 15]
+
     dicts_for_plots = []
+    dicts_for_plots_stats = []
 
     list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
-    list_of_methods = ['AdaN-AC1', 'AdaN-AC2']
-    # list_of_methods = ['AdaMEC']
 
-    datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-                            'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
+    # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
+    #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
+    #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
+    #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+    #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+
+    datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                            'abalone', 'car_eval_34', 'letter_img',
+                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
                             'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                            'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+                            'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
             dicts_for_plots.append(
                 run_eval(dataset=dataset, folds=3, iterations=3, baseL=baseL, methods=list_of_methods))
         else:
-            dicts_for_plots.append(
-                run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL, methods=list_of_methods))
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL, methods=list_of_methods)
+            # dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=2, iterations=1, baseL=baseL, methods=list_of_methods)
+            dicts_for_plots.append(dataset_dict1)
+            dicts_for_plots_stats.append(dataset_dict2)
 
     plot_overall_data(list_of_methods, dicts_for_plots, "Images/Performance/Overall/", baseL)
+    plot_overall_resource_stats_time(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/", baseL)
+    plot_overall_resource_stats_scores(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/", baseL)
