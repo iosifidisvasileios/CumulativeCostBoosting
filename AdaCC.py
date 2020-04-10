@@ -22,23 +22,18 @@ The module structure is the following:
 #          Arnaud Joly <arnaud.v.joly@gmail.com>
 #
 # License: BSD 3 clause
-
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 import numpy as np
-import sklearn
-from sklearn.base import is_classifier, ClassifierMixin, is_regressor
+from sklearn.base import  ClassifierMixin, is_regressor
 from sklearn.ensemble import BaseEnsemble
 from sklearn.externals import six
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
-from sklearn.metrics import r2_score
 from sklearn.tree import BaseDecisionTree, DecisionTreeClassifier
 from sklearn.utils.validation import has_fit_parameter, check_is_fitted, check_array, check_X_y, check_random_state
-import math
 
 __all__ = [
-    'AdaAC',
+    'AdaCC',
 ]
 
 from sklearn.metrics import confusion_matrix
@@ -124,7 +119,7 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         # Check parameters
         self._validate_estimator()
 
-        # self._class_weights = []
+
         self.cost_pos = []
         self.cost_neg = []
         self.training_error = []
@@ -141,6 +136,9 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         self.estimator_alphas_ = np.zeros(self.n_estimators, dtype=np.float64)
 
         random_state = check_random_state(self.random_state)
+
+        self.predictions_array = np.zeros([ X.shape[0], 2])
+
 
         for iboost in range(self.n_estimators):
             sample_weight_sum = np.sum(sample_weight)
@@ -256,7 +254,7 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         return X
 
 
-class AdaAC(BaseWeightBoosting, ClassifierMixin):
+class AdaCC(BaseWeightBoosting, ClassifierMixin):
     """An AdaBoost classifier.
 
     An AdaBoost [1] classifier is a meta-estimator that begins by fitting a
@@ -336,13 +334,13 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
                  base_estimator=None,
                  n_estimators=50,
                  learning_rate=1.,
-                 algorithm='AdaAC1',
+                 algorithm='AdaCC1',
                  random_state=None,
                  attributes=None,
                  amortised=True,
                  debug=False):
 
-        super(AdaAC, self).__init__(
+        super(AdaCC, self).__init__(
             base_estimator=base_estimator,
             n_estimators=n_estimators,
             learning_rate=learning_rate,
@@ -377,43 +375,24 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
             Returns self.
         """
         # Check that algorithm is supported
-        if self.algorithm not in ('AdaAC1', 'AdaAC2'):
+        if self.algorithm not in ('AdaCC1', 'AdaCC2'):
             raise ValueError("algorithm %s is not supported" % self.algorithm)
 
         # Fit
-        return super(AdaAC, self).fit(X, y, sample_weight)
+        return super(AdaCC, self).fit(X, y, sample_weight)
 
     def _validate_estimator(self):
         """Check the estimator and set the base_estimator_ attribute."""
-        super(AdaAC, self)._validate_estimator(default=DecisionTreeClassifier(max_depth=1, criterion='entropy'))
+        super(AdaCC, self)._validate_estimator(default=DecisionTreeClassifier(max_depth=1, criterion='entropy'))
 
         #  SAMME-R requires predict_proba-enabled base estimators
         if not has_fit_parameter(self.base_estimator_, "sample_weight"):
             raise ValueError("%s doesn't support sample_weight."
                              % self.base_estimator_.__class__.__name__)
 
-    def calculate_cost(self, data, labels, predictions):
+    def calculate_cost(self, labels, predictions):
 
-        tp = 0.
-        tn = 0.
-        fp = 0.
-        fn = 0.
-
-        for idx, val in enumerate(data):
-            # protrcted population
-            # correctly classified
-            if labels[idx] == predictions[idx]:
-                if labels[idx] == 1:
-                    tp += 1
-                else:
-                    tn += 1
-            # misclassified
-            else:
-                if labels[idx] == 1:
-                    fn += 1
-                else:
-                    fp += 1
-
+        tn, fp, fn, tp = confusion_matrix(labels, predictions).ravel()
         self.cost_positive = 2 - tp / (tp + fn)
         self.cost_negative = 2 - tn / (tn + fp)
 
@@ -460,9 +439,12 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
         self.estimator_alphas_[iboost] = alpha
 
         if self.amortised:
-            self.calculate_cost(X, y, self.predict(X))
+            self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
+            self.calculate_cost(y, self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0))
+            # this operation is too slow. replaced it with the above computations
+            # self.calculate_cost(y, self.predict(X))
         else:
-            self.calculate_cost(X, y, y_predict)
+            self.calculate_cost(y, y_predict)
 
         if self.debug:
             # self.training_error.append(1 - accuracy_score(y, self.predict(X)))
@@ -479,14 +461,14 @@ class AdaAC(BaseWeightBoosting, ClassifierMixin):
 
         if not iboost == self.n_estimators - 1:
 
-            if self.algorithm == 'AdaAC1':
+            if self.algorithm == 'AdaCC1':
                 for idx, row in enumerate(sample_weight):
                     if y[idx] == 1 and y_predict[idx] != 1:
                         sample_weight[idx] *= np.exp(self.cost_positive * alpha)
                     elif y[idx] != 1 and y_predict[idx] == 1:
                         sample_weight[idx] *= np.exp(self.cost_negative * alpha)
 
-            elif self.algorithm == 'AdaAC2':
+            elif self.algorithm == 'AdaCC2':
                 for idx, row in enumerate(sample_weight):
                     if y[idx] == 1 and y_predict[idx] != 1:
                         sample_weight[idx] *= np.exp(alpha) * self.cost_positive

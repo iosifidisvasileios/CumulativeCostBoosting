@@ -100,7 +100,7 @@ recall = []
 balanced_accuracy = []
 opm = []
 
-list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
+list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
                    'RareBoost']
 measures = ['accuracy', 'gmean', 'f1score', 'recall', 'balanced_accuracy', 'opm']
 
@@ -155,7 +155,7 @@ for baseL_index in range(1, 9):
 
 
 def plot_data(list_of_measures, output_dir, filename):
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
                        'RareBoost']
     list_of_results = [[] for i in list_of_methods]
 

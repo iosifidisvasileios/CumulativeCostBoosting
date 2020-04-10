@@ -11,7 +11,7 @@ matplotlib.use('Agg')
 
 def plot_the_lists(mean, stDev, output_dir):
     baseL = [25, 50, 75, 100, 125, 150, 175, 200]
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2',
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2',
                        'AdaC3', 'RareBoost']
     plt.figure(figsize=(10, 10))
     plt.rcParams.update({'font.size': 12})
@@ -46,7 +46,7 @@ def plot_the_lists(mean, stDev, output_dir):
     plt.savefig(output_dir + ".png", bbox_inches='tight', dpi=200)
     plt.clf()
 
-list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
 measures = ['gmean', 'f1score', 'tpr', 'tnr','balanced_accuracy']
 
 datasets_list = sorted([ 'adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',

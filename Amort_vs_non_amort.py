@@ -20,7 +20,7 @@ from collections import Counter
 import os, sys
 from multiprocessing import Process
 from imblearn import datasets
-from AdaAC import AdaAC
+from AdaCC import AdaCC
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
 from DataPreprocessing.load_mushroom import load_mushroom
@@ -118,11 +118,11 @@ def run_eval(dataset, baseL, methods):
 
 
 def train_and_predict(X_train, y_train, base_learners, method):
-    if 'AdaAC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method, debug=True)
+    if 'AdaCC' in method:
+        clf = AdaCC(n_estimators=base_learners, algorithm=method, debug=True)
         clf.fit(X_train, y_train)
-    elif 'AdaN-AC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), debug=True, amortised=False)
+    elif 'AdaN-CC' in method:
+        clf = AdaCC(n_estimators=base_learners, algorithm=method.replace("N-", ""), debug=True, amortised=False)
         clf.fit(X_train, y_train)
 
     with open('temp_preds_adaac/' + method, 'wb') as filehandle:
@@ -141,9 +141,12 @@ if __name__ == '__main__':
     if not os.path.exists("Amort_vs_non_amort"):
         os.makedirs("Amort_vs_non_amort")
 
+    if not os.path.exists("temp_preds_adaac"):
+        os.makedirs("temp_preds_adaac")
+
     baseLearners = [200]
     # list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
-    list_of_methods = ['AdaAC1', 'AdaAC2', 'AdaN-AC1', 'AdaN-AC2',]
+    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2',]
 
     datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
                             'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',

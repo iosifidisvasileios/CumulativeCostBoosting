@@ -22,7 +22,7 @@ from imblearn import datasets
 from sklearn.metrics import f1_score, balanced_accuracy_score
 from sklearn.model_selection import StratifiedKFold
 import time
-from AdaAC import AdaAC
+from AdaCC import AdaCC
 from Competitors.AdaC1C3 import AdaCost
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
@@ -47,7 +47,7 @@ def update_performance_stats(new_stats, output, iterations):
 
 def update_resource_stats(new_stats, output, iterations, method):
     output[iterations]['time'].append(new_stats[0])
-    if method not in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+    if method not in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
         output[iterations]['score'].append(new_stats[1])
         output[iterations]['ratio'].append(new_stats[2])
 
@@ -184,10 +184,10 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump(clf.predict(X_test), filehandle)
         return
 
-    elif 'AdaAC' in method:
+    elif 'AdaCC' in method:
         t1_start = process_time()
 
-        clf = AdaAC(n_estimators=base_learners, algorithm=method)
+        clf = AdaCC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
         t1_stop = process_time()
         oveall_time = t1_stop - t1_start
@@ -202,7 +202,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
     elif 'AdaN-AC' in method:
         t1_start = process_time()
 
-        clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), amortised=False)
+        clf = AdaCC(n_estimators=base_learners, algorithm=method.replace("N-", ""), amortised=False)
         clf.fit(X_train, y_train)
 
         t1_stop = process_time()
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     dicts_for_plots = []
     dicts_for_plots_stats = []
 
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
 
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',

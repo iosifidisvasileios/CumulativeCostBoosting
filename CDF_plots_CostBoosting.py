@@ -23,7 +23,7 @@ from sklearn.metrics import f1_score
 from Competitors.RareBoost import RareBoost
 from Competitors.AdaC1C3 import AdaCost
 from DataPreprocessing.load_mat_data import load_mat_data
-from AdaAC import AdaAC
+from AdaCC import AdaCC
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -212,8 +212,8 @@ def train_classifier(X_train, y_train, base_learners, method, cl_names):
         clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
         clf.fit(X_train, y_train)
 
-    elif 'AdaAC' in method or 'AdaAPC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method)
+    elif 'AdaCC' in method or 'AdaAPC' in method:
+        clf = AdaCC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
 
     elif 'RareBoost' in method:
@@ -338,7 +338,7 @@ if __name__ == '__main__':
     if not os.path.exists("temp"):
         os.makedirs("temp")
 
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
     #
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',

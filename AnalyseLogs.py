@@ -128,7 +128,7 @@ ranked_y = [list_of_performance[i] for i in indexes]
 
 
 def plot_data(ranked_x, ranked_y, output_dir, filename):
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
     list_of_results = [[] for i in list_of_methods]
 
     for item in ranked_y:

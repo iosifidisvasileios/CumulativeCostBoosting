@@ -25,7 +25,7 @@ from multiprocessing import Process
 
 from imblearn import datasets
 from sklearn.metrics import f1_score
-from AdaAC import AdaAC
+from AdaCC import AdaCC
 from Competitors.AdaC1C3 import AdaCost
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
@@ -115,8 +115,8 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method):
     if method == 'AdaBoost':
         clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners)
         clf.fit(X_train, y_train)
-    elif 'AdaAC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method)
+    elif 'AdaCC' in method:
+        clf = AdaCC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
 
     elif 'AdaMEC' in method:
@@ -201,7 +201,7 @@ def sig_scores(dataset_predictions, baseL, methods):
         mymethods = []
 
         for i in range(0, len(dataset)):
-            if 'AdaAC' in methods[i]:
+            if 'AdaCC' in methods[i]:
                 mymethods.append(dataset[i])
                 names_mymethods.append(methods[i])
                 continue
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     if not os.path.exists("Sig_temp_preds"):
         os.makedirs("Sig_temp_preds")
     baselines = [25, 50, 75, 100, 125, 150, 175, 200]
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2','AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2','AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
                             'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',

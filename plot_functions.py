@@ -281,7 +281,7 @@ def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
         plt.xlabel("Weak Learners")
 
         for i in range(0, len(methods)):
-            if methods[i] in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+            if methods[i] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
                 continue
             y_values = []
             for weak_learners in baseL:
@@ -334,7 +334,7 @@ def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir,
         plt.xlabel("Weak Learners")
 
         for method_index in range(0, len(methods)):
-            if methods[method_index] in ['AdaBoost','RareBoost','AdaAC1','AdaAC2']:
+            if methods[method_index] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
                 continue
             y_values = []
             for dataset_index in range(0, len(list_of_dicts_stats)):

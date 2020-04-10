@@ -20,7 +20,7 @@ from collections import Counter
 import os, sys
 from multiprocessing import Process
 from imblearn import datasets
-from AdaAC import AdaAC
+from AdaCC import AdaCC
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
 from DataPreprocessing.load_mushroom import load_mushroom
@@ -115,10 +115,10 @@ def run_eval(dataset, baseL, methods):
 
     for method in methods:
         if method == "RareBoost":
-            with open('temp_preds_adaac/' + method, 'rb') as filehandle:
+            with open('temp_preds_AdaCC/' + method, 'rb') as filehandle:
                 list_of_dicts.append(update_stats(pickle.load(filehandle), True))
         else:
-            with open('temp_preds_adaac/' + method, 'rb') as filehandle:
+            with open('temp_preds_AdaCC/' + method, 'rb') as filehandle:
                 list_of_dicts.append(update_stats(pickle.load(filehandle), False))
 
     plot_costs_per_round(methods, list_of_dicts, baseL, "Images/PerRoundBaselines/" + dataset + "/")
@@ -129,16 +129,16 @@ def train_and_predict(X_train, y_train, base_learners, method):
     if method == 'AdaBoost':
         clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
         clf.fit(X_train, y_train)
-    elif 'AdaAC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method, debug=True)
+    elif 'AdaCC' in method:
+        clf = AdaCC(n_estimators=base_learners, algorithm=method, debug=True)
         clf.fit(X_train, y_train)
     elif 'AdaN-AC' in method:
-        clf = AdaAC(n_estimators=base_learners, algorithm=method.replace("N-",""), debug=True, amortised=False)
+        clf = AdaCC(n_estimators=base_learners, algorithm=method.replace("N-", ""), debug=True, amortised=False)
         clf.fit(X_train, y_train)
     elif 'RareBoost' in method:
         clf = RareBoost(n_estimators=base_learners, debug=True)
         clf.fit(X_train, y_train)
-        with open('temp_preds_adaac/' + method, 'wb') as filehandle:
+        with open('temp_preds_AdaCC/' + method, 'wb') as filehandle:
             pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_weights_pos,
                          clf.estimator_weights_neg], filehandle)
         return
@@ -168,7 +168,7 @@ def train_and_predict(X_train, y_train, base_learners, method):
                 pass
         clf = best_clf
 
-    with open('temp_preds_adaac/' + method, 'wb') as filehandle:
+    with open('temp_preds_AdaCC/' + method, 'wb') as filehandle:
         pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_alphas_],
                     filehandle)
 
@@ -181,11 +181,11 @@ if __name__ == '__main__':
     if not os.path.exists("Images/PerRoundBaselines"):
         os.makedirs("Images/PerRoundBaselines")
 
-    if not os.path.exists("temp_preds_adaac"):
-        os.makedirs("temp_preds_adaac")
+    if not os.path.exists("temp_preds_AdaCC"):
+        os.makedirs("temp_preds_AdaCC")
 
     baseLearners = [200]
-    list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
