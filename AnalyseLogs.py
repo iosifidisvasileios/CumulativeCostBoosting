@@ -1,3 +1,7 @@
+from operator import itemgetter
+
+from cycler import cycler
+
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
@@ -20,6 +24,55 @@ import matplotlib
 import os
 
 matplotlib.use('Agg')
+
+
+
+def plot_data(ranked_x, ranked_y, output_dir, filename):
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_results = [[] for i in list_of_methods]
+    for i in range(0,len(ranked_x)):
+        ranked_x[i] = ranked_x[i].replace("_", " ")
+        ranked_x[i] = ranked_x[i].replace(" 34", "")
+
+    for item in ranked_y:
+        for idx, method in enumerate(list_of_methods):
+            list_of_results[idx].append(item[method])
+
+    plt.figure(figsize=(25, 4))
+    plt.rcParams.update({'font.size': 15})
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors)
+                      # + cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                      #                   (0, (5, 10)),
+                      #                   (0, (5, 1)),
+                      #                   '-', (0, (1, 1)), '--', '-.',
+                      #                   (0, (5, 10))])
+                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+    plt.rc('axes', prop_cycle=default_cycler)
+    plt.grid()
+    plt.grid(True, axis='y')
+
+    x = [jj for jj in range(0,len(ranked_x))]
+    # plt.xticks(x, ranked_x)
+    plt.xlim([-.5,26.5])
+
+    markers = ['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']
+    for i in range(0, len(list_of_methods)):
+        # plt.plot(x, list_of_results[i], label=list_of_methods[i], markersize=12.5)
+        if i == 1 or i == 2:
+            s=130
+        else:
+            s=90
+        plt.scatter(x, list_of_results[i], label=list_of_methods[i], marker=markers[i], s=s )
+    plt.xticks(x, ranked_x, rotation=20,ha='right')
+
+    plt.legend(loc='upper center', bbox_to_anchor=(0.499, 1.155), ncol=11)
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    plt.savefig(output_dir + filename + ".png", bbox_inches='tight', dpi=200)
+    plt.clf()
 
 import numpy
 import matplotlib.pyplot as plt
@@ -80,29 +133,32 @@ def load_datasets(dataset, names):
     return output
 
 
-datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-                        'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-                        'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
-                        'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                        'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
-
+datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                        'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                        'electricity',
+                        'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                        'thyroid_sick',
+                        'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 dataset_names = set()
 list_of_stats = []
 for dataset in datasets_list:
     list_of_stats.append(load_datasets(dataset, dataset_names))
 
-logs = open("Evaluation.log", "r")
+logs = open("eval.log", "r")
 
 new_dataset = False
 performance_flag = False
 list_of_performance = []
 dataset_performance = dict()
 cnt = 0
+
+data_temp = ""
 for line in logs:
     if line.split("\t")[0] in dataset_names:
+        data_temp = line.split("\t")[0]
         performance_flag = False
 
-    if line.startswith("balanced_accuracy"):
+    if line.startswith("opm"):
         performance_flag = True
         continue
 
@@ -113,64 +169,23 @@ for line in logs:
             list_of_performance.append(dataset_performance)
             dataset_performance = dict()
             performance_flag = False
+            if data_temp == 'wine_quality':
+                break
 
-opt_for = "feat"
-if opt_for == "class":
-    ranked_stats = [x[2] for x in list_of_stats]
-elif opt_for == "feat":
-    ranked_stats = [x[1] for x in list_of_stats]
-elif opt_for == "inst":
-    ranked_stats = [x[0] for x in list_of_stats]
+ranking = [i["AdaCC1"] for i in list_of_performance]
+indices, L_sorted = zip(*sorted(enumerate(ranking), key=itemgetter(1)))
 
-indexes = list(numpy.argsort(ranked_stats))
-ranked_x = list(numpy.sort(ranked_stats))
-ranked_y = [list_of_performance[i] for i in indexes]
+ranked_results = []
+ranked_datasets = []
 
-
-def plot_data(ranked_x, ranked_y, output_dir, filename):
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
-    list_of_results = [[] for i in list_of_methods]
-
-    for item in ranked_y:
-        for idx, method in enumerate(list_of_methods):
-            list_of_results[idx].append(item[method])
-
-    plt.figure(figsize=(10, 10))
-    plt.rcParams.update({'font.size': 12})
-    plt.grid()
-    # plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
-    plt.xscale('log')
-    plt.grid(True, axis='y')
-
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    plt.ylabel('%')
-    if filename == "class_based":
-        plt.xlabel("Class Imbalance Ratio")
-    elif filename == "feat_based":
-        plt.xlabel("Number of Features")
-    elif filename == "inst_based":
-        plt.xlabel("Number of Instances")
-
-    for i in range(0, len(list_of_methods)):
-        plt.plot(ranked_x, list_of_results[i], label=list_of_methods[i], color=colors[i])
-
-    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    plt.savefig(output_dir + filename + ".png", bbox_inches='tight', dpi=200)
-    plt.clf()
+for i in indices:
+    ranked_results.append(list_of_performance[i])
+    ranked_datasets.append(datasets_list[i])
+print(ranked_datasets)
 
 
-if opt_for == "class":
-    plot_data(ranked_x, ranked_y, "Images/", "class_based")
-
-elif opt_for == "feat":
-    plot_data(ranked_x, ranked_y, "Images/", "feat_based")
-
-elif opt_for == "inst":
-    plot_data(ranked_x, ranked_y, "Images/", "inst_based")
+plot_data(ranked_datasets, ranked_results, "Images/", "opm_ranked")
+plot_data(datasets_list, list_of_performance, "Images/", "opm_non_ranked")
 
 
 

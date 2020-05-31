@@ -106,7 +106,7 @@ measures = ['accuracy', 'gmean', 'f1score', 'recall', 'balanced_accuracy', 'opm'
 
 for baseL_index in range(1, 9):
     for item in measures:
-        logs = open("Evaluation.log", "r")
+        logs = open("eval.log", "r")
         new_dataset = False
         performance_flag = False
         list_of_performance = []

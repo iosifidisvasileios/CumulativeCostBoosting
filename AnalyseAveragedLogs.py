@@ -9,7 +9,7 @@ import numpy
 
 matplotlib.use('Agg')
 
-def plot_the_lists(mean, stDev, output_dir):
+def plot_the_lists(mean, stDev, output_dir, flag):
     baseL = [25, 50, 75, 100, 125, 150, 175, 200]
     list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2',
                        'AdaC3', 'RareBoost']
@@ -36,7 +36,11 @@ def plot_the_lists(mean, stDev, output_dir):
     plt.xlabel("Weak Learners")
 
     for idx, method in enumerate(list_of_methods):
-        plt.errorbar(numpy.arange(len(baseL)), mean[method],   markersize=12.5, yerr=stDev[method], label=method,  )
+        if flag:
+            plt.errorbar(numpy.arange(len(baseL)), mean[method],   markersize=12.5, yerr=stDev[method], label=method,  )
+        else:
+            plt.yscale('log')
+            plt.errorbar(numpy.arange(len(baseL)), mean[method],   markersize=12.5, label=method,  )
 
     plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.08), ncol=6)
 
@@ -47,16 +51,18 @@ def plot_the_lists(mean, stDev, output_dir):
     plt.clf()
 
 list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
-measures = ['gmean', 'f1score', 'tpr', 'tnr','balanced_accuracy']
+measures = ['gmean', 'f1score', 'tpr', 'tnr','balanced_accuracy', 'time']
 
-datasets_list = sorted([ 'adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                         'abalone', 'car_eval_34', 'letter_img',
-                        'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
-                        'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                        'wine_quality', 'us_crime',  'ozone_level', 'webpage', 'coil_2000'])
 
-banned_sets = ['mushroom', 'landsatM','spliceM', 'semeion_orig', 'waveformM','protein_homo',]
-[0., 0., 0., 0., 0., 0., 0., 0.]
+datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                        'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                        'electricity',
+                        'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                        'thyroid_sick',
+                        'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
+banned_sets = ['mushroom', 'landsatM','spliceM', 'semeion_orig', 'waveformM' ]
+
 opm = defaultdict(list)
 opm_stdev = defaultdict(list)
 for method in list_of_methods:
@@ -74,7 +80,7 @@ for item in measures:
         dataset_performance = defaultdict(list)
         dataset_performance_stdev = defaultdict(list)
 
-        logs = open("Evaluation.log", "r")
+        logs = open("eval.log", "r")
 
         performance_flag = False
         list_of_performance = []
@@ -82,6 +88,7 @@ for item in measures:
         for line in logs:
 
             if line.split("\t")[0] in banned_sets:
+                print(line)
                 allow = False
                 print(line)
                 continue
@@ -98,26 +105,39 @@ for item in measures:
             if performance_flag and allow:
                 tempList = line.replace("\n","").split(",")
                 if tempList[0] in list_of_methods:
-                    dataset_performance[tempList[0]].append(float(tempList[baseL_index].split(" ")[0])/100.)
-                    dataset_performance_stdev[tempList[0]].append(float(tempList[baseL_index].split(" ")[1].replace("(","").replace(")",""))/100.)
+                    if item != 'time' :
+                        dataset_performance[tempList[0]].append(float(tempList[baseL_index].split(" ")[0])/100.)
+                    else:
+                        print(tempList)
+                        dataset_performance[tempList[0]].append(float(tempList[baseL_index]))
+
+                    if item != 'time' :
+                        dataset_performance_stdev[tempList[0]].append(float(tempList[baseL_index].split(" ")[1].replace("(","").replace(")",""))/100.)
+
                     if line.startswith('RareBoost'):
                         # list_of_performance.append(dataset_performance)
                         performance_flag = False
                         # break
         for method in list_of_methods:
             dataset_performance_avg[method].append(mean(dataset_performance[method]))
-            dataset_performance_stdev_avg[method].append(mean(dataset_performance_stdev[method]))
+            if item != 'time' :
+                dataset_performance_stdev_avg[method].append(mean(dataset_performance_stdev[method]))
 
     for method in list_of_methods:
+        if item == 'time' :
+            continue
         opm[method] = [dataset_performance_avg[method][j]/5. + opm[method][j] for j in range(0, 8)]
-        opm_stdev[method] = [dataset_performance_stdev_avg[method][j]/5. + opm_stdev[method][j] for j in range(0, 8)]
+        if item != 'time' :
+            opm_stdev[method] = [dataset_performance_stdev_avg[method][j]/5. + opm_stdev[method][j] for j in range(0, 8)]
 
     print(dataset_performance_avg)
     print(len(dataset_performance_avg['AdaBoost']))
-    plot_the_lists(dataset_performance_avg, dataset_performance_stdev_avg,"Images/" + item)
-
+    if item != 'time' :
+        plot_the_lists(dataset_performance_avg, dataset_performance_stdev_avg,"Images/" + item, True)
+    else:
+        plot_the_lists(dataset_performance_avg, dataset_performance_stdev_avg,"Images/" + item, False)
     logs.close()
 
-plot_the_lists(opm, opm_stdev,"Images/opm" )
+plot_the_lists(opm, opm_stdev,"Images/opm", True )
 
 

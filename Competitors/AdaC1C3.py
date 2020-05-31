@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.base import is_regressor
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import BaseEnsemble
-from sklearn.metrics import balanced_accuracy_score, accuracy_score
+from sklearn.metrics import balanced_accuracy_score, accuracy_score, confusion_matrix
 from sklearn.tree import BaseDecisionTree, DecisionTreeClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils import (check_random_state,
@@ -142,6 +142,8 @@ class AdaCost(AdaBoostClassifier):
         self._class_weights_neg = []
         self.estimator_alphas_ = np.zeros(self.n_estimators, dtype=np.float64)
         self.estimator_errors_ = np.ones(self.n_estimators, dtype=np.float64)
+        if self.debug:
+            self.predictions_array = np.zeros([X.shape[0], 2])
 
         random_state = check_random_state(self.random_state)
 
@@ -149,8 +151,6 @@ class AdaCost(AdaBoostClassifier):
             if self.debug:
                 self._class_weights_pos.append(sample_weight[y == 1].sum())
                 self._class_weights_neg.append(sample_weight[y != 1].sum())
-                if iboost != 0:
-                    self.training_error.append(1 - balanced_accuracy_score(y, self.predict(X)))
 
             # Boosting step
             sample_weight, estimator_weight, estimator_error = self._boost(
@@ -168,11 +168,17 @@ class AdaCost(AdaBoostClassifier):
             self.estimator_alphas_[iboost] = estimator_weight
             self.estimator_errors_[iboost] = estimator_error
 
+            if self.debug:
+                self.predictions_array += (self.estimators_[iboost].predict(X) == self.classes_[:, np.newaxis]).T * self.estimator_alphas_[iboost]
+                tn, fp, fn, tp = confusion_matrix(y,
+                                                  self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0),
+                                                  labels=[0, 1]).ravel()
+
+                self.training_error.append(1 - ((float(tp)) / (tp + fn) + (float(tn))/(tn + fp))/2.)
             # Stop if error is zero
             if estimator_error == 0:
                 break
-        if self.debug:
-            self.training_error.append(1 - balanced_accuracy_score(y, self.predict(X)))
+
         return self
 
     def _boost(self, iboost, X, y, sample_weight, random_state):

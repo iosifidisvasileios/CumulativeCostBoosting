@@ -18,7 +18,7 @@ import operator
 
 from imblearn import datasets
 from multiprocessing import Process
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, balanced_accuracy_score
 
 from Competitors.RareBoost import RareBoost
 from Competitors.AdaC1C3 import AdaCost
@@ -209,25 +209,22 @@ def run_eval(dataset, base_learners, methods):
 
 def train_classifier(X_train, y_train, base_learners, method, cl_names):
     if method == 'AdaBoost':
-        clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
+        clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners)
         clf.fit(X_train, y_train)
 
-    elif 'AdaCC' in method or 'AdaAPC' in method:
+    elif 'AdaCC' in method or 'AdaN-CC' in method:
         clf = AdaCC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
 
     elif 'RareBoost' in method:
         clf = RareBoost(n_estimators=base_learners)
         clf.fit(X_train, y_train)
-
     else:
         counter_dict = Counter(list(y_train))
-
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         best = -1
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
-        # ratios = [2.5, 5., 7.5, 10.]
 
         for j in ratios:
             try:
@@ -237,9 +234,10 @@ def train_classifier(X_train, y_train, base_learners, method, cl_names):
                 if clf.error == 1:
                     clf = None
                 else:
-                    temp = f1_score(y_train, clf.predict(X_train))
-                    if temp >= best:
-                        best = temp
+                    score = f1_score(y_train, clf.predict(X_train))
+                    # score = balanced_accuracy_score(y_train, clf.predict(X_train))
+                    if score >= best:
+                        best = score
                         best_clf = clf
             except:
                 pass
@@ -345,10 +343,10 @@ if __name__ == '__main__':
     #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
     #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
     #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
-                            'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
     for baseL in [25, 200]:
         overall_list = []

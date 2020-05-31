@@ -3,7 +3,7 @@ warnings.filterwarnings("ignore")
 
 import operator
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, balanced_accuracy_score
 
 from Competitors.AdaC1C3 import AdaCost
 from Competitors.RareBoost import RareBoost
@@ -149,7 +149,6 @@ def train_and_predict(X_train, y_train, base_learners, method):
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         best = -1
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
-        # ratios = [2.5, 5., 7.5, 10.]
 
         for j in ratios:
             try:
@@ -160,9 +159,10 @@ def train_and_predict(X_train, y_train, base_learners, method):
                 if clf.error == 1:
                     continue
 
-                temp = f1_score(y_train, clf.predict(X_train))
-                if temp >= best:
-                    best = temp
+                score = f1_score(y_train, clf.predict(X_train))
+                # temp = balanced_accuracy_score(y_train, clf.predict(X_train))
+                if score >= best:
+                    best = score
                     best_clf = clf
             except:
                 pass
@@ -192,11 +192,12 @@ if __name__ == '__main__':
     #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
     #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
     #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
-                            'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
     for baseL in baseLearners:
         dicts_for_plots = []
         for dataset in datasets_list:

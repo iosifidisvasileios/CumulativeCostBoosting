@@ -444,6 +444,8 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
             # this operation is too slow. replaced it with the above computations
             # self.calculate_cost(y, self.predict(X))
         else:
+            self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
+
             self.calculate_cost(y, y_predict)
 
         if self.debug:
@@ -452,12 +454,11 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
             self.cost_neg.append(self.cost_negative)
             self._class_weights_pos.append(sample_weight[y == 1].sum())
             self._class_weights_neg.append(sample_weight[y != 1].sum())
-            tn, fp, fn, tp  =confusion_matrix(y, self.predict(X), labels=[0, 1] ).ravel()
+
+            tn, fp, fn, tp  =confusion_matrix(y, self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0), labels=[0, 1] ).ravel()
             self._tpr.append((float(tp))/(tp + fn))
             self._tnr.append((float(tn))/(tn + fp))
-            self.training_error.append(1.- float(tp+tn)/(tp + tn +fp +fn))
-
-
+            self.training_error.append(1 - ((float(tp)) / (tp + fn) + (float(tn)) / (tn + fp)) / 2.)
 
         if not iboost == self.n_estimators - 1:
 

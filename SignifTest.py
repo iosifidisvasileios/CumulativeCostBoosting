@@ -24,7 +24,7 @@ import operator
 from multiprocessing import Process
 
 from imblearn import datasets
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, balanced_accuracy_score
 from AdaCC import AdaCC
 from Competitors.AdaC1C3 import AdaCost
 from DataPreprocessing.load_adult import load_adult
@@ -125,18 +125,20 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method):
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+        ratios = [2.,  4.,  6.,  8., 10.]
 
         clf = AdaMEC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
-        best_fscore = -1
+        best_score = -1
         best_idx = 0
         for idx, cost in enumerate(ratios):
             class_weight = {minority: 1, majority: cost / 10.}
             clf.set_costs(y_train, class_weight)
-            fscore = f1_score(y_train, clf.predict(X_train))
-            if best_fscore < fscore:
+            score = f1_score(y_train, clf.predict(X_train))
+            # score = balanced_accuracy_score(y_train, clf.predict(X_train))
+            if best_score < score:
                 best_idx = idx
-                best_fscore = fscore
+                best_score = score
         class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
         clf.set_costs(y_train, class_weight)
 
@@ -148,6 +150,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method):
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+        ratios = [2.,  4.,  6.,  8., 10.]
 
         processes = []
         for ratio in ratios:
@@ -184,6 +187,7 @@ def train_competitors(X_train, y_train, X_test, base_learners, method, maj, min,
         clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
         clf.fit(X_train, y_train)
         out.append(f1_score(y_train, clf.predict(X_train)))
+        # out.append(balanced_accuracy_score(y_train, clf.predict(X_train)))
         out.append(clf.predict(X_test))
         with open('Sig_temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
@@ -236,11 +240,17 @@ if __name__ == '__main__':
     baselines = [25, 50, 75, 100, 125, 150, 175, 200]
     list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2','AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
-    datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-                            'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
-                            'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                            'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+    # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
+    #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
+    #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
+    #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+    #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+
+    datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
 
     for baseL in baselines:
         dataset_predictions = []

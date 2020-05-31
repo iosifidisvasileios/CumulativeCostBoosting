@@ -206,6 +206,7 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
         os.makedirs(output_dir)
     print("time," + ",".join([str(p) for p in baseL]))
 
+
     plt.figure(figsize=(10, 10))
     plt.rcParams.update({'font.size': 12})
     plt.grid()
@@ -281,7 +282,7 @@ def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
         plt.xlabel("Weak Learners")
 
         for i in range(0, len(methods)):
-            if methods[i] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
+            if methods[i] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2', 'AdaN-CC1', 'AdaN-CC2']:
                 continue
             y_values = []
             for weak_learners in baseL:
@@ -312,20 +313,24 @@ def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir,
     for item in ['score', 'ratio']:
         print(item + "," + ",".join([str(p) for p in baseL]))
 
+        list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2',
+                           'AdaC3',
+                           'RareBoost']
+
         plt.figure(figsize=(10, 10))
         plt.rcParams.update({'font.size': 12})
         plt.grid()
         plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
         plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        colors = ['c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
         default_cycler = (cycler(color=colors) +
-                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                          cycler(linestyle=['-.',
                                             (0, (5, 10)),
                                             (0, (5, 1)),
                                             '-', (0, (1, 1)), '--', '-.',
                                             (0, (5, 10))])
 
-                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+                          + cycler(marker=['v', 'p', 'X', '^', 's', 'p', 'h', '8']))
         plt.rc('axes', prop_cycle=default_cycler)
 
         plt.grid(True, axis='y')
@@ -366,16 +371,23 @@ def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir,
 def plot_amort_vs_non_amort(methods, results, baseL, directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round']:
+    colors = ['g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=[ (0, (1, 1)), '--', '-.',
+                                        '-',
+                                        (0, (5, 1)),
+                                        '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))]))
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha', 'balanced_error']:
         plt.figure(figsize=(7, 7))
+        plt.rc('axes', prop_cycle=default_cycler)
+
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
         for k in range(0, len(methods)):
             res = results[k][i]
             steps = numpy.arange(0, len(res), step=1)
-            plt.plot(steps, res, '-', label=methods[k], linewidth=1, color=colors[k])
+            plt.plot(steps, res, label=methods[k] )
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.065), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')
@@ -390,7 +402,7 @@ def plot_costs_per_round(methods, results, baseL, directory):
         os.makedirs(directory)
 
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    for i in ['pos_class_weights', 'neg_class_weights', 'bal_err', 'alpha']:
+    for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
         plt.figure(figsize=(7, 7))
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
@@ -421,14 +433,14 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
 
     # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
 
-    for i in ['pos_class_weights', 'neg_class_weights', 'bal_err', 'alpha']:
+    for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo']
+        colors = ['b', 'g', 'r',   'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo']
         default_cycler = (cycler(color=colors) +
-                          cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
+                          cycler(linestyle=['-', (0, (1, 1)), '--',
                                             (0, (5, 10)),
                                             (0, (5, 1)),
                                             '-', (0, (1, 1)), '--', '-.',
@@ -472,11 +484,19 @@ def plot_costs_per_round_all_datasets_amort_vs_non_amort(methods, results, direc
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+    colors = ['g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    default_cycler = (cycler(color=colors) +
+                      cycler(linestyle=[ (0, (1, 1)), '--', '-.',
+                                        '-',
+                                        (0, (5, 1)),
+                                        '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10))]))
 
-    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round']:
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha', 'balanced_error']:
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
+        plt.rc('axes', prop_cycle=default_cycler)
+
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
 
@@ -490,9 +510,252 @@ def plot_costs_per_round_all_datasets_amort_vs_non_amort(methods, results, direc
                     res += numpy.array(temp_list) / float(len(results))
                 else:
                     res += numpy.array(k[jj][i]) / float(len(results))
-            plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
+            plt.plot(steps, res, label=methods[jj])
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.065), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')
         plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
                     fancybox=True, framealpha=.30)
+
+
+# from __future__ import absolute_import, division, print_function, unicode_literals
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from sklearn.decomposition import PCA, KernelPCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+def retrieve_n_class_color_cubic(N):
+    '''
+    retrive color code for N given classes
+    Input: class number
+    Output: list of RGB color code
+    '''
+
+    # manualy encode the top 8 colors
+    # the order is intuitive to be used
+    color_list = [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (1, 1, 0),
+        (0, 1, 1),
+        (1, 0, 1),
+        (0, 0, 0),
+        (1, 1, 1)
+    ]
+
+    # if N is larger than 8 iteratively generate more random colors
+    np.random.seed(1)  # pre-define the seed for consistency
+
+    interval = 0.5
+    while len(color_list) < N:
+        the_list = []
+        iterator = np.arange(0, 1.0001, interval)
+        for i in iterator:
+            for j in iterator:
+                for k in iterator:
+                    if (i, j, k) not in color_list:
+                        the_list.append((i, j, k))
+        the_list = list(set(the_list))
+        np.random.shuffle(the_list)
+        color_list.extend(the_list)
+        interval = interval / 2.0
+
+    return color_list[:N]
+
+
+def plot_decision_boundary(model, dim_red_method='pca',
+                           X=None, Y=None,
+                           xrg=None, yrg=None,
+                           Nx=300, Ny=300,
+                           scatter_sample=None,
+                           figsize=[10, 10], alpha=0.7,
+                           random_state=111):
+    '''
+    Plot decision boundary for any two dimension classification models
+        in sklearn.
+    Input:
+        model: sklearn classification model class - already fitted
+                (with "predict" and "predict_proba" method)
+        dim_red_method: sklearn dimension reduction model
+                (with "fit_transform" and "inverse_transform" method)
+        xrg (list/tuple): xrange
+        yrg (list/tuple): yrange
+        Nx (int): x axis grid size
+        Ny (int): y axis grid size
+        X (nparray): dataset to project over decision boundary (X)
+        Y (nparray): dataset to project over decision boundary (Y)
+        figsize, alpha are parameters in matplotlib
+    Output:
+        matplotlib figure object
+    '''
+
+    # check model is legit to use
+    try:
+        getattr(model, 'predict')
+    except:
+        print("model do not have method predict 'predict' ")
+        return None
+
+    use_prob = False
+    try:
+        getattr(model, 'predict_proba')
+    except:
+        print("model do not have method predict 'predict_proba' ")
+        use_prob = False
+
+    # convert X into 2D data
+    ss, dr_model = None, None
+    if X is not None:
+        if X.shape[1] == 2:
+            X2D = X
+        elif X.shape[1] > 2:
+            # leverage PCA to dimension reduction to 2D if not already
+            ss = StandardScaler()
+            if dim_red_method == 'pca':
+                dr_model = PCA(n_components=2)
+            elif dim_red_method == 'kernal_pca':
+                dr_model = KernelPCA(n_components=2,
+                                     fit_inverse_transform=True)
+            else:
+                print('dim_red_method {0} is not supported'.format(
+                    dim_red_method))
+
+            X2D = dr_model.fit_transform(ss.fit_transform(X))
+        else:
+            print('X dimension is strange: {0}'.format(X.shape))
+            return None
+
+        # extract two dimension info.
+        x1 = X2D[:, 0].min() - 0.1 * (X2D[:, 0].max() - X2D[:, 0].min())
+        x2 = X2D[:, 0].max() + 0.1 * (X2D[:, 0].max() - X2D[:, 0].min())
+        y1 = X2D[:, 1].min() - 0.1 * (X2D[:, 1].max() - X2D[:, 1].min())
+        y2 = X2D[:, 1].max() + 0.1 * (X2D[:, 1].max() - X2D[:, 1].min())
+
+    # inti xrg and yrg based on given value
+    if xrg is None:
+        if X is None:
+            xrg = [-10, 10]
+        else:
+            xrg = [x1, x2]
+
+    if yrg is None:
+        if X is None:
+            yrg = [-10, 10]
+        else:
+            yrg = [y1, y2]
+
+    # generate grid, mesh, and X for model prediction
+    xgrid = np.arange(xrg[0], xrg[1], 1. * (xrg[1] - xrg[0]) / Nx)
+    ygrid = np.arange(yrg[0], yrg[1], 1. * (yrg[1] - yrg[0]) / Ny)
+
+    xx, yy = np.meshgrid(xgrid, ygrid)
+    X_full_grid = np.array(list(zip(np.ravel(xx), np.ravel(yy))))
+
+    # initialize figure & axes object
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(1, 1, 1)
+
+    # get data from model predictions
+    if dr_model is None:
+        Yp = model.predict(X_full_grid)
+        if use_prob:
+            Ypp = model.predict_proba(X_full_grid)
+        else:
+            Ypp = pd.get_dummies(Yp).values
+    else:
+        X_full_grid_inverse = ss.inverse_transform(
+            dr_model.inverse_transform(X_full_grid))
+
+        Yp = model.predict(X_full_grid_inverse)
+        if use_prob:
+            Ypp = model.predict_proba(X_full_grid_inverse)
+        else:
+            Ypp = pd.get_dummies(Yp).values
+
+    # retrieve n class from util function
+    nclass = Ypp.shape[1]
+    colors = np.array(retrieve_n_class_color_cubic(N=nclass))
+
+    # get decision boundary line
+    Yp = Yp.reshape(xx.shape)
+    Yb = np.zeros(xx.shape)
+
+    Yb[:-1, :] = np.maximum((Yp[:-1, :] != Yp[1:, :]), Yb[:-1, :])
+    Yb[1:, :] = np.maximum((Yp[:-1, :] != Yp[1:, :]), Yb[1:, :])
+    Yb[:, :-1] = np.maximum((Yp[:, :-1] != Yp[:, 1:]), Yb[:, :-1])
+    Yb[:, 1:] = np.maximum((Yp[:, :-1] != Yp[:, 1:]), Yb[:, 1:])
+
+    # plot decision boundary first
+    ax.imshow(Yb, origin='lower', interpolation=None, cmap='Greys',
+              extent=[xrg[0], xrg[1], yrg[0], yrg[1]],
+              alpha=1.0)
+
+    # plot probability surface
+    zz = np.dot(Ypp, colors[:nclass, :])
+    zz_r = zz.reshape(xx.shape[0], xx.shape[1], 3)
+    ax.imshow(zz_r, origin='lower', interpolation=None,
+              extent=[xrg[0], xrg[1], yrg[0], yrg[1]],
+              alpha=alpha)
+
+    # add scatter plot for X & Y if given
+    if X is not None:
+        # down sample point if needed
+        if Y is not None:
+            if scatter_sample is not None:
+                X2DS, _, YS, _ = train_test_split(X2D, Y, stratify=Y,
+                                                  train_size=scatter_sample,
+                                                  random_state=random_state)
+            else:
+                X2DS = X2D
+                YS = Y
+        else:
+            if scatter_sample is not None:
+                X2DS, _ = train_test_split(X2D, train_size=scatter_sample,
+                                           random_state=random_state)
+            else:
+                X2DS = X2D
+
+        # convert Y into point color
+        if Y is not None:
+            # presume Y is labeled from 0 to N-1
+            cYS = [colors[i] for i in YS]
+
+        if Y is not None:
+            ax.scatter(X2DS[:, 0], X2DS[:, 1], c=cYS)
+        else:
+            ax.scatter(X2DS[:, 0], X2DS[:, 1])
+
+    # add legend on each class
+    colors_bar = []
+    for v1 in colors[:nclass, :]:
+        v1 = list(v1)
+        v1.append(alpha)
+        colors_bar.append(v1)
+
+    # create a patch (proxy artist) for every color
+    patches = [mpatches.Patch(color=colors_bar[i],
+                              label="Class {k}".format(k=i))
+               for i in range(nclass)]
+    # put those patched as legend-handles into the legend
+    plt.legend(handles=patches, bbox_to_anchor=(1.05, 1),
+               loc=2, borderaxespad=0., framealpha=0.5)
+
+    # make the figure nicer
+    ax.set_title('Classification decision boundary')
+    if dr_model is None:
+        ax.set_xlabel('Raw axis X')
+        ax.set_ylabel('Raw axis Y')
+    else:
+        ax.set_xlabel('Dimension reduced axis 1')
+        ax.set_ylabel('Dimension reduced axis 2')
+    ax.set_xlim(xrg)
+    ax.set_ylim(yrg)
+    ax.set_xticks(np.arange(xrg[0], xrg[1], (xrg[1] - xrg[0])/5.))
+    ax.set_yticks(np.arange(yrg[0], yrg[1], (yrg[1] - yrg[0])/5.))
+    ax.grid(True)
+
+    return fig, ss, dr_model

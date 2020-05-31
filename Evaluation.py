@@ -1,4 +1,5 @@
 import warnings
+
 warnings.filterwarnings("ignore")
 
 from time import process_time
@@ -9,7 +10,6 @@ from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
 
-
 from Competitors.RareBoost import RareBoost
 from DataPreprocessing.load_mat_data import load_mat_data
 
@@ -19,7 +19,7 @@ import os, sys
 import operator
 from multiprocessing import Process
 from imblearn import datasets
-from sklearn.metrics import f1_score, balanced_accuracy_score
+from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
 import time
 from AdaCC import AdaCC
@@ -47,20 +47,16 @@ def update_performance_stats(new_stats, output, iterations):
 
 def update_resource_stats(new_stats, output, iterations, method):
     output[iterations]['time'].append(new_stats[0])
-    if method not in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
+    if method not in ['AdaBoost', 'RareBoost', 'AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2']:
         output[iterations]['score'].append(new_stats[1])
         output[iterations]['ratio'].append(new_stats[2])
 
     return output
 
 
-
 def print_stats(names, stats):
     for i in range(0, len(names)):
         print(names[i] + " " + str(stats[i]))
-
-
-
 
 
 def run_eval(dataset, folds, iterations, baseL, methods):
@@ -125,14 +121,13 @@ def run_eval(dataset, folds, iterations, baseL, methods):
     for weak_learners in baseL:
         for item in list_of_dicts_stats:
             item[weak_learners] = defaultdict(list)
-
     cnt = 0
 
     for samples in range(0, iterations):
-        print("iteration=", samples)
 
         sss = StratifiedKFold(n_splits=folds, shuffle=True, random_state=int(time.time()))
         for weak_learners in baseL:
+            print("iteration=", samples, " weak learners=", weak_learners)
 
             # for weak_learners in baseL:
             for train_index, test_index in sss.split(X, y):
@@ -152,22 +147,22 @@ def run_eval(dataset, folds, iterations, baseL, methods):
 
                 for index, method in enumerate(methods):
                     with open('temp_preds/' + method, 'rb') as filehandle:
-                        list_of_dicts[index] = update_performance_stats(calculate_performance(y_test, [pickle.load(filehandle)]),
-                                                                        list_of_dicts[index],
-                                                                        weak_learners
-                                                                        )
+                        list_of_dicts[index] = update_performance_stats(
+                            calculate_performance(y_test, [pickle.load(filehandle)]),
+                            list_of_dicts[index],
+                            weak_learners
+                        )
 
                     with open('temp_preds/stats_' + method, 'rb') as filehandle:
                         list_of_dicts_stats[index] = update_resource_stats(pickle.load(filehandle),
-                                                                        list_of_dicts_stats[index],
-                                                                        weak_learners,
-                                                                        method
-                                                                        )
+                                                                           list_of_dicts_stats[index],
+                                                                           weak_learners,
+                                                                           method
+                                                                           )
     plot_single_dataset(methods, list_of_dicts, "Images/Performance/" + dataset + "/", baseL)
     plot_resource_stats_time(methods, list_of_dicts_stats, "Images/Performance/" + dataset + "/Resource/", baseL)
     plot_resource_stats_scores(methods, list_of_dicts_stats, "Images/Performance/" + dataset + "/Resource/", baseL)
     return list_of_dicts, list_of_dicts_stats
-
 
 def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names):
     if method == 'AdaBoost':
@@ -199,7 +194,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump(clf.predict(X_test), filehandle)
         return
 
-    elif 'AdaN-AC' in method:
+    elif 'AdaN-CC' in method:
         t1_start = process_time()
 
         clf = AdaCC(n_estimators=base_learners, algorithm=method.replace("N-", ""), amortised=False)
@@ -221,19 +216,20 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+
         t1_start = process_time()
 
         clf = AdaMEC(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
-        best_bal_acc = -1
+        best_score = -1
         best_idx = 0
         for idx, cost in enumerate(ratios):
             class_weight = {minority: 1, majority: cost / 10.}
             clf.set_costs(y_train, class_weight)
-            bal_acc = balanced_accuracy_score(y_train, clf.predict(X_train))
-            if best_bal_acc < bal_acc:
+            score = f1_score(y_train, clf.predict(X_train))
+            if best_score < score:
                 best_idx = idx
-                best_bal_acc = bal_acc
+                best_score = score
         class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
         clf.set_costs(y_train, class_weight)
 
@@ -241,7 +237,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         oveall_time = t1_stop - t1_start
 
         with open('temp_preds/stats_' + method, 'wb') as filehandle:
-            pickle.dump([oveall_time, best_bal_acc, ratios[best_idx] ], filehandle)
+            pickle.dump([oveall_time, best_score, ratios[best_idx]], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
             pickle.dump(clf.predict(X_test), filehandle)
@@ -253,9 +249,9 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         clf = RareBoost(n_estimators=base_learners)
         clf.fit(X_train, y_train)
         t1_stop = process_time()
-        oveall_time = t1_stop-t1_start
+        oveall_time = t1_stop - t1_start
 
-        with open('temp_preds/stats_' + method , 'wb') as filehandle:
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
             pickle.dump([oveall_time], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
@@ -278,7 +274,6 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         for p in processes:
             p.join()
 
-
         best_score = -1
         best_ratio = 0
         oveall_time = 0
@@ -295,12 +290,13 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             if os.path.exists('temp_preds/' + method + str(ratio)):
                 os.remove('temp_preds/' + method + str(ratio))
 
-        with open('temp_preds/stats_' + method , 'wb') as filehandle:
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
             pickle.dump([oveall_time, best_score, best_ratio], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
             pickle.dump(clf.predict(X_test), filehandle)
         return
+
 
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
     try:
@@ -310,9 +306,9 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
         clf.fit(X_train, y_train)
         t1_stop = process_time()
 
-        out.append(balanced_accuracy_score(y_train, clf.predict(X_train)))
+        out.append(f1_score(y_train, clf.predict(X_train)))
         out.append(clf)
-        out.append(t1_stop-t1_start)
+        out.append(t1_stop - t1_start)
         with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
     except:
@@ -328,12 +324,13 @@ if __name__ == '__main__':
         os.makedirs("Images/Performance/")
 
     baseL = [25, 50, 75, 100, 125, 150, 175, 200]
-    # baseL = [5, 10, 15]
 
     dicts_for_plots = []
     dicts_for_plots_stats = []
 
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
+                       'RareBoost']
+    list_of_methods = [ 'AdaN-CC1', 'AdaN-CC2']
 
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
@@ -342,22 +339,24 @@ if __name__ == '__main__':
     #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img',
-                            'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',
-                            'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
-            dicts_for_plots.append(
-                run_eval(dataset=dataset, folds=3, iterations=3, baseL=baseL, methods=list_of_methods))
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=1, baseL=baseL,
+                                                    methods=list_of_methods)
         else:
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL, methods=list_of_methods)
-            # dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=2, iterations=1, baseL=baseL, methods=list_of_methods)
-            dicts_for_plots.append(dataset_dict1)
-            dicts_for_plots_stats.append(dataset_dict2)
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=3, baseL=baseL,
+                                                    methods=list_of_methods)
+
+        dicts_for_plots.append(dataset_dict1)
+        dicts_for_plots_stats.append(dataset_dict2)
 
     plot_overall_data(list_of_methods, dicts_for_plots, "Images/Performance/Overall/", baseL)
-    plot_overall_resource_stats_time(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/", baseL)
-    plot_overall_resource_stats_scores(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/", baseL)
+    plot_overall_resource_stats_time(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/",
+                                     baseL)
+    plot_overall_resource_stats_scores(list_of_methods, dicts_for_plots_stats, "Images/Performance/Overall/Resource/",
+                                       baseL)
