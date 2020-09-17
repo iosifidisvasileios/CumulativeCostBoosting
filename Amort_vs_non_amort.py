@@ -16,7 +16,6 @@ import os, sys
 from multiprocessing import Process
 from imblearn import datasets
 from AdaCC import AdaCC
-from AdaCCModified import AdaCC as MAdaCC
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
 from DataPreprocessing.load_mushroom import load_mushroom
@@ -121,9 +120,6 @@ def train_and_predict(X_train, y_train, base_learners, method):
     elif 'AdaN-CC' in method:
         clf = AdaCC(n_estimators=base_learners, algorithm=method.replace("N-", ""), debug=True, amortised=False)
         clf.fit(X_train, y_train)
-    elif 'AdaM-CC' in method:
-        clf = MAdaCC(n_estimators=base_learners, algorithm=method.replace("M-", ""), debug=True)
-        clf.fit(X_train, y_train)
 
     with open('temp_preds_adaac/' + method, 'wb') as filehandle:
         # pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_alphas_], filehandle)
@@ -145,8 +141,7 @@ if __name__ == '__main__':
 
     baseLearners = [200]
     # list_of_methods = ['AdaBoost', 'AdaAC1', 'AdaAC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
-    # list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2',]
-    list_of_methods = ['AdaCC1',  'AdaM-CC1' ]
+    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2',]
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
                             'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',

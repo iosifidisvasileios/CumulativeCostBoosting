@@ -3,7 +3,7 @@
 import matplotlib
 from cycler import cycler
 from imblearn import metrics
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import balanced_accuracy_score, roc_auc_score, precision_recall_curve, average_precision_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_score
 import os
@@ -26,10 +26,17 @@ def calculate_performance(labels, predictions):
     output["recall"] = recall_score(labels, predictions[0])
     output["precision"] = precision_score(labels, predictions[0])
 
+    output["auc"] = roc_auc_score(labels, predictions[1][:, 1])
+    output["prc"] = average_precision_score(labels, predictions[1][:, 1])
+
     tn, fp, fn, tp = confusion_matrix(labels, predictions[0]).ravel()
     output["tpr"] = float(tp) / (float(tp) + float(fn))
     output["tnr"] = float(tn) / (float(tn) + float(fp))
     output["opm"] = (output['gmean'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 5.
+
+
+    output["opm_prc"] = (output['gmean'] +output['prc'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 6.
+    output["opm_auc"] = (output['gmean'] +output['auc'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 6.
 
     return output
 
@@ -91,8 +98,8 @@ def plot_resource_stats_time(methods, list_of_dicts_stats, output_dir, baseL):
 
 
 def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
-    # items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr','balanced_accuracy', 'auc_score']
-    items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy']
+    items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc',  'tpr', 'tnr','balanced_accuracy', 'auc', 'opm_prc', 'opm_auc']
+    # items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy', 'auc']
 
     for item in items_for_figs:
         print(item + "," + ",".join([str(p) for p in baseL]))
@@ -141,7 +148,8 @@ def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
         plt.clf()
 
 def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
-    metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy']
+    # metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy', 'auc']
+    metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc',  'tpr', 'tnr','balanced_accuracy', 'auc', 'opm_prc', 'opm_auc']
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -154,7 +162,8 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
         plt.grid()
         plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
         plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
-        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+                  '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
         default_cycler = (cycler(color=colors) +
                           cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                                             (0, (5, 10)),
@@ -213,7 +222,8 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
     plt.yscale('log')
     plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
     plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
     default_cycler = (cycler(color=colors) +
                       cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10)),
@@ -432,16 +442,16 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
         os.makedirs(directory)
 
     # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c',  '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
 
-    for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
+    for i in ['pos_class_weights', 'bal_err', 'alpha']:
+    # for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
-        colors = ['b', 'g', 'r',   'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo']
         default_cycler = (cycler(color=colors) +
                           cycler(linestyle=['-', (0, (1, 1)), '--',
-                                            (0, (5, 10)),
                                             (0, (5, 1)),
                                             '-', (0, (1, 1)), '--', '-.',
                                             (0, (5, 10)), (0, (1, 1))]))
@@ -468,6 +478,7 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                     if res.shape[0] != numpy.array(k[jj][i]).shape[0]:
                         temp_list = list(numpy.array(k[jj][i]))
                         for missing in range(0, res.shape[0] - numpy.array(k[jj][i]).shape[0]):
+                            print(methods[jj], temp_list)
                             temp_list.append(temp_list[-1])
                         res += numpy.array(temp_list) / float(len(results))
                     else:
@@ -484,7 +495,8 @@ def plot_costs_per_round_all_datasets_amort_vs_non_amort(methods, results, direc
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    colors = ['g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    colors = [ '#1f77b4', '#ff7f0e','#2ca02c',  '#9467bd', '#8c564b',
+               '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
     default_cycler = (cycler(color=colors) +
                       cycler(linestyle=[ (0, (1, 1)), '--', '-.',
                                         '-',

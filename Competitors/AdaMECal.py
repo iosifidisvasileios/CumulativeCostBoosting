@@ -70,7 +70,7 @@ class AdaMEC(AdaBoostClassifier):
         :return: object; Return self
         """
 
-        AdaBoostUncal = AdaBoostClassifier(algorithm='SAMME', n_estimators=self.n_estimators)
+        AdaBoostUncal = AdaBoostClassifier(algorithm='SAMME.R', n_estimators=self.n_estimators)
         AdaBoostUncal = AdaBoostUncal.fit(X, y)
 
         AdaBoostCal = CalibratedClassifierCV(AdaBoostUncal, cv="prefit", method=self.calibration_method)
@@ -106,3 +106,6 @@ class AdaMEC(AdaBoostClassifier):
             scores_CalibratedAdaMEC > self.C_FN_effective)] = 1  # Classifications, AdaMEC uses a shifted decision threshold (skew-sensitive)
 
         return y_pred_CalibratedAdaMEC
+
+    def predict_proba(self, X):
+        return self.AdaBoostCal.predict_proba(X)

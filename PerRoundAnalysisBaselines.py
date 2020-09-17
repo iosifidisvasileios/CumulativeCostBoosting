@@ -1,4 +1,5 @@
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import operator
@@ -11,7 +12,6 @@ from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
-
 
 from DataPreprocessing.load_mat_data import load_mat_data
 
@@ -147,30 +147,47 @@ def train_and_predict(X_train, y_train, base_learners, method):
 
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
-        best = -1
+
         ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
 
-        for j in ratios:
-            try:
-                clf = AdaCost(n_estimators=base_learners, algorithm=method,
-                              class_weight={minority: 1, majority: j / 10.},
-                              debug=True)
-                clf.fit(X_train, y_train)
-                if clf.error == 1:
-                    continue
+        processes = []
+        for ratio in ratios:
+            p = Process(target=train_competitors,
+                        args=(X_train, y_train, base_learners, method, majority, minority, ratio))
+            p.start()
+            processes.append(p)
+        for p in processes:
+            p.join()
 
-                score = f1_score(y_train, clf.predict(X_train))
-                # temp = balanced_accuracy_score(y_train, clf.predict(X_train))
-                if score >= best:
-                    best = score
-                    best_clf = clf
-            except:
-                pass
-        clf = best_clf
+        best_score = -1
+        for ratio in ratios:
+            if os.path.exists('temp_preds/' + method + str(ratio)):
+                with open('temp_preds/' + method + str(ratio), 'rb') as filehandle:
+                    temp = pickle.load(filehandle)
+                    if temp[0] > best_score:
+                        best_score = temp[0]
+                        clf = temp[1]
+
+            if os.path.exists('temp_preds/' + method + str(ratio)):
+                os.remove('temp_preds/' + method + str(ratio))
 
     with open('temp_preds_AdaCC/' + method, 'wb') as filehandle:
         pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_alphas_],
                     filehandle)
+
+
+def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
+    try:
+        out = []
+        clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.}, debug=True)
+        clf.fit(X_train, y_train)
+
+        out.append(f1_score(y_train, clf.predict(X_train)))
+        out.append(clf)
+        with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
+            pickle.dump(out, filehandle)
+    except:
+        return
 
 
 if __name__ == '__main__':
@@ -184,8 +201,9 @@ if __name__ == '__main__':
     if not os.path.exists("temp_preds_AdaCC"):
         os.makedirs("temp_preds_AdaCC")
 
-    baseLearners = [200]
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    baseLearners = [10]
+    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
+                       'RareBoost']
 
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
@@ -194,8 +212,10 @@ if __name__ == '__main__':
     #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
-                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                            'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                            'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
     for baseL in baseLearners:

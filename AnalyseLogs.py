@@ -28,7 +28,7 @@ matplotlib.use('Agg')
 
 
 def plot_data(ranked_x, ranked_y, output_dir, filename):
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
     list_of_results = [[] for i in list_of_methods]
     for i in range(0,len(ranked_x)):
         ranked_x[i] = ranked_x[i].replace("_", " ")
@@ -38,16 +38,17 @@ def plot_data(ranked_x, ranked_y, output_dir, filename):
         for idx, method in enumerate(list_of_methods):
             list_of_results[idx].append(item[method])
 
-    plt.figure(figsize=(25, 4))
-    plt.rcParams.update({'font.size': 15})
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    plt.figure(figsize=(25, 5))
+    plt.rcParams.update({'font.size': 15.5})
+    colors = [ '#1f77b4', '#ff7f0e','#2ca02c', '#d62728', '#9467bd', '#8c564b',
+               '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
     default_cycler = (cycler(color=colors)
                       # + cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                       #                   (0, (5, 10)),
                       #                   (0, (5, 1)),
                       #                   '-', (0, (1, 1)), '--', '-.',
                       #                   (0, (5, 10))])
-                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+                      +cycler(marker=[ 'd','v', 'x', '*', 'p', 'X', '^', 's', 'p', 'h', '8']))
     plt.rc('axes', prop_cycle=default_cycler)
     plt.grid()
     plt.grid(True, axis='y')
@@ -55,18 +56,18 @@ def plot_data(ranked_x, ranked_y, output_dir, filename):
     x = [jj for jj in range(0,len(ranked_x))]
     # plt.xticks(x, ranked_x)
     plt.xlim([-.5,26.5])
-
-    markers = ['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']
+    zord = [2,1,0,0,0,0,0,0,0,0,0,0]
+    markers = [ 'd','v', 'x', '*', 'p', 'X', '^', 's', 'p', 'h', '8']
     for i in range(0, len(list_of_methods)):
         # plt.plot(x, list_of_results[i], label=list_of_methods[i], markersize=12.5)
-        if i == 1 or i == 2:
+        if i == 0 or i == 1:
             s=130
         else:
             s=90
-        plt.scatter(x, list_of_results[i], label=list_of_methods[i], marker=markers[i], s=s )
+        plt.scatter(x, list_of_results[i], label=list_of_methods[i], marker=markers[i], s=s,zorder= zord[i] )
     plt.xticks(x, ranked_x, rotation=20,ha='right')
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0.499, 1.155), ncol=11)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.486, 1.155), ncol=11)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -144,7 +145,7 @@ list_of_stats = []
 for dataset in datasets_list:
     list_of_stats.append(load_datasets(dataset, dataset_names))
 
-logs = open("eval.log", "r")
+logs = open("Evaluation.log", "r")
 
 new_dataset = False
 performance_flag = False
@@ -158,7 +159,7 @@ for line in logs:
         data_temp = line.split("\t")[0]
         performance_flag = False
 
-    if line.startswith("opm"):
+    if line.startswith("opm_auc,"):
         performance_flag = True
         continue
 
@@ -172,19 +173,22 @@ for line in logs:
             if data_temp == 'wine_quality':
                 break
 
-ranking = [i["AdaCC1"] for i in list_of_performance]
-indices, L_sorted = zip(*sorted(enumerate(ranking), key=itemgetter(1)))
+# ranking = [i["AdaCC1"] for i in list_of_performance]
+# indices, L_sorted = zip(*sorted(enumerate(ranking), key=itemgetter(1)))
 
-ranked_results = []
-ranked_datasets = []
+# ranked_results = []
+# ranked_datasets = []
 
-for i in indices:
-    ranked_results.append(list_of_performance[i])
-    ranked_datasets.append(datasets_list[i])
-print(ranked_datasets)
+# for i in indices:
+#     ranked_results.append(list_of_performance[i])
+#     ranked_datasets.append(datasets_list[i])
+# print(ranked_datasets)
 
 
-plot_data(ranked_datasets, ranked_results, "Images/", "opm_ranked")
+# plot_data(ranked_datasets, ranked_results, "Images/", "opm_ranked")
+print(len(datasets_list))
+print(len(list_of_performance))
+print(list_of_performance)
 plot_data(datasets_list, list_of_performance, "Images/", "opm_non_ranked")
 
 

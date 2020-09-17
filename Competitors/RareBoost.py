@@ -6,6 +6,7 @@ from sklearn.ensemble import BaseEnsemble
 from sklearn.externals import six
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.utils.extmath import softmax
 from sklearn.utils.validation import has_fit_parameter, check_is_fitted, check_array, check_X_y, check_random_state, \
     _check_sample_weight
 
@@ -528,3 +529,49 @@ class RareBoost(BaseWeightBoosting, ClassifierMixin):
         #     pred[:, neg_idx] *= -1
         #     return pred.sum(axis=1)
         return pred
+
+
+    @staticmethod
+    def _compute_proba_from_decision(decision, n_classes):
+        """Compute probabilities from the decision function.
+
+        This is based eq. (4) of [1] where:
+            p(y=c|X) = exp((1 / K-1) f_c(X)) / sum_k(exp((1 / K-1) f_k(X)))
+                     = softmax((1 / K-1) * f(X))
+
+        References
+        ----------
+        .. [1] J. Zhu, H. Zou, S. Rosset, T. Hastie, "Multi-class AdaBoost",
+               2009.
+        """
+        if n_classes == 2:
+            decision = np.vstack([-decision, decision]).T / 2
+        else:
+            decision /= (n_classes - 1)
+        return softmax(decision, copy=False)
+
+
+    def predict_proba(self, X):
+        """Predict class probabilities for X.
+
+        The predicted class probabilities of an input sample is computed as
+        the weighted mean predicted class probabilities of the classifiers
+        in the ensemble.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. COO, DOK, and LIL are converted to CSR.
+
+        Returns
+        -------
+        p : array of shape (n_samples, n_classes)
+            The class probabilities of the input samples. The order of
+            outputs is the same of that of the :term:`classes_` attribute.
+        """
+
+        n_classes = self.n_classes_
+
+        return self.decision_function(X)
+

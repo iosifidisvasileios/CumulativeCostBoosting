@@ -1,5 +1,7 @@
 import warnings
 
+from DataPreprocessing.load_rain_aus import load_rain_aus
+
 warnings.filterwarnings("ignore")
 
 from time import process_time
@@ -94,6 +96,9 @@ def run_eval(dataset, folds, iterations, baseL, methods):
         X, y, cl_names = load_mat_data(dataset)
     elif dataset == "semeion_orig":
         X, y, cl_names = load_mat_data(dataset)
+    elif dataset == "rain_aus":
+        X, y, cl_names = load_rain_aus()
+        print(y)
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
@@ -148,7 +153,7 @@ def run_eval(dataset, folds, iterations, baseL, methods):
                 for index, method in enumerate(methods):
                     with open('temp_preds/' + method, 'rb') as filehandle:
                         list_of_dicts[index] = update_performance_stats(
-                            calculate_performance(y_test, [pickle.load(filehandle)]),
+                            calculate_performance(y_test, pickle.load(filehandle)),
                             list_of_dicts[index],
                             weak_learners
                         )
@@ -176,7 +181,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
         return
 
     elif 'AdaCC' in method:
@@ -191,7 +196,9 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
+
         return
 
     elif 'AdaN-CC' in method:
@@ -207,7 +214,8 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
         return
 
     elif 'AdaMEC' in method:
@@ -231,6 +239,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
                 best_idx = idx
                 best_score = score
         class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
+
         clf.set_costs(y_train, class_weight)
 
         t1_stop = process_time()
@@ -240,7 +249,8 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time, best_score, ratios[best_idx]], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
         return
 
     elif method == 'RareBoost':
@@ -255,7 +265,9 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
+
         return
 
     else:
@@ -294,7 +306,9 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([oveall_time, best_score, best_ratio], filehandle)
 
         with open('temp_preds/' + method, 'wb') as filehandle:
-            pickle.dump(clf.predict(X_test), filehandle)
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
+
         return
 
 
@@ -328,9 +342,8 @@ if __name__ == '__main__':
     dicts_for_plots = []
     dicts_for_plots_stats = []
 
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
-                       'RareBoost']
-    list_of_methods = [ 'AdaN-CC1', 'AdaN-CC2']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    # list_of_methods = [ 'AdaN-CC1', 'AdaN-CC2']
 
     # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
     #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
@@ -343,13 +356,14 @@ if __name__ == '__main__':
                             'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
+    datasets_list = ['rain_aus']
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=1, baseL=baseL,
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=1, baseL=baseL,
                                                     methods=list_of_methods)
         else:
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=3, baseL=baseL,
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL,
                                                     methods=list_of_methods)
 
         dicts_for_plots.append(dataset_dict1)
