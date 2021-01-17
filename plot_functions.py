@@ -32,11 +32,13 @@ def calculate_performance(labels, predictions):
     tn, fp, fn, tp = confusion_matrix(labels, predictions[0]).ravel()
     output["tpr"] = float(tp) / (float(tp) + float(fn))
     output["tnr"] = float(tn) / (float(tn) + float(fp))
-    output["opm"] = (output['gmean'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 5.
+    output["opm"] = (output['gmean'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output[
+        "tnr"]) / 5.
 
-
-    output["opm_prc"] = (output['gmean'] +output['prc'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 6.
-    output["opm_auc"] = (output['gmean'] +output['auc'] + output['balanced_accuracy'] + output['f1score'] + output['tpr'] + output["tnr"] ) / 6.
+    output["opm_prc"] = (output['gmean'] + output['prc'] + output['balanced_accuracy'] + output['f1score'] + output[
+        'tpr'] + output["tnr"]) / 6.
+    output["opm_auc"] = (output['gmean'] + output['auc'] + output['balanced_accuracy'] + output['f1score'] + output[
+        'tpr'] + output["tnr"]) / 6.
 
     return output
 
@@ -90,15 +92,15 @@ def plot_resource_stats_time(methods, list_of_dicts_stats, output_dir, baseL):
 
     plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
 
-
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    plt.savefig(output_dir +  "time.png", bbox_inches='tight', dpi=200)
+    plt.savefig(output_dir + "time.png", bbox_inches='tight', dpi=200)
 
 
 def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
-    items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc',  'tpr', 'tnr','balanced_accuracy', 'auc', 'opm_prc', 'opm_auc']
+    items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc', 'tpr', 'tnr', 'balanced_accuracy', 'auc',
+                      'opm_prc', 'opm_auc']
     # items_for_figs = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy', 'auc']
 
     for item in items_for_figs:
@@ -147,9 +149,11 @@ def plot_single_dataset(list_of_names, list_of_dicts, output_dir, baseL):
         plt.savefig(output_dir + item + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
 
+
 def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
     # metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'tpr', 'tnr', 'balanced_accuracy', 'auc']
-    metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc',  'tpr', 'tnr','balanced_accuracy', 'auc', 'opm_prc', 'opm_auc']
+    metric_names = ['accuracy', 'gmean', 'f1score', 'recall', 'opm', 'prc', 'tpr', 'tnr', 'balanced_accuracy', 'auc',
+                    'opm_prc', 'opm_auc']
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -163,15 +167,16 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
         plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
         plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
-                  '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
+                  '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black', 'orange', 'cyan', 'brown']
         default_cycler = (cycler(color=colors) +
                           cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                                             (0, (5, 10)),
                                             (0, (5, 1)),
                                             '-', (0, (1, 1)), '--', '-.',
-                                            (0, (5, 10))])
+                                            (0, (5, 10)), (0, (5, 1)),
+                                            '-', (0, (1, 1))])
 
-                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+                          + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8', 'P', '<', ">"]))
         plt.rc('axes', prop_cycle=default_cycler)
 
         plt.grid(True, axis='y')
@@ -205,7 +210,7 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
                     float("%0.2f" % (std_values[pp] * 100))) + ")"
             print(my_string)
 
-        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.185), ncol=5)
         plt.savefig(output_dir + metric_index + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
 
@@ -215,7 +220,6 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
         os.makedirs(output_dir)
     print("time," + ",".join([str(p) for p in baseL]))
 
-
     plt.figure(figsize=(10, 10))
     plt.rcParams.update({'font.size': 12})
     plt.grid()
@@ -223,15 +227,16 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
     plt.setp(plt.gca().get_xticklabels(), rotation=20, horizontalalignment='right')
     plt.xticks(numpy.arange(len(baseL)), [str(k) for k in baseL])
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
-              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
+              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black', 'orange', 'cyan', 'brown']
     default_cycler = (cycler(color=colors) +
                       cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10)),
                                         (0, (5, 1)),
                                         '-', (0, (1, 1)), '--', '-.',
-                                        (0, (5, 10))])
+                                        (0, (5, 10)), (0, (5, 1)),
+                                        '-', (0, (1, 1))])
 
-                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8']))
+                      + cycler(marker=['*', 'd', 'x', 'v', 'p', 'X', '^', 's', 'p', 'h', '8', 'P', '<', ">"]))
     plt.rc('axes', prop_cycle=default_cycler)
 
     plt.grid(True, axis='y')
@@ -244,7 +249,8 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
         for dataset_index in range(0, len(list_of_dicts_stats)):
             per_dataset_avg = []
             for weak_learners in baseL:
-                per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners]['time']))
+                per_dataset_avg.append(
+                    numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners]['time']))
 
             y_values.append(per_dataset_avg)
 
@@ -258,12 +264,12 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
 
         print(my_string)
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=5)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    plt.savefig(output_dir +  "time.png", bbox_inches='tight', dpi=200)
+    plt.savefig(output_dir + "time.png", bbox_inches='tight', dpi=200)
 
 
 def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
@@ -292,12 +298,12 @@ def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
         plt.xlabel("Weak Learners")
 
         for i in range(0, len(methods)):
-            if methods[i] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2', 'AdaN-CC1', 'AdaN-CC2']:
+            if methods[i] in ['AdaBoost', 'RareBoost', 'AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2']:
                 continue
             y_values = []
             for weak_learners in baseL:
                 if item == 'ratio':
-                    y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners][item])/10)
+                    y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners][item]) / 10)
                 else:
                     y_values.append(numpy.mean(list_of_dicts_stats[i][weak_learners][item]))
 
@@ -306,7 +312,7 @@ def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
             my_string = methods[i]
 
             for pp in range(0, len(baseL)):
-                my_string += "," + str(float("%0.2f" % (y_values[pp] )))
+                my_string += "," + str(float("%0.2f" % (y_values[pp])))
 
             print(my_string)
 
@@ -315,7 +321,8 @@ def plot_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        plt.savefig(output_dir +  item + ".png", bbox_inches='tight', dpi=200)
+        plt.savefig(output_dir + item + ".png", bbox_inches='tight', dpi=200)
+
 
 def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir, baseL):
     if not os.path.exists(output_dir):
@@ -349,16 +356,18 @@ def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir,
         plt.xlabel("Weak Learners")
 
         for method_index in range(0, len(methods)):
-            if methods[method_index] in ['AdaBoost','RareBoost','AdaCC1','AdaCC2']:
+            if methods[method_index] in ['AdaBoost', 'RareBoost', 'AdaCC1', 'AdaCC2']:
                 continue
             y_values = []
             for dataset_index in range(0, len(list_of_dicts_stats)):
                 per_dataset_avg = []
                 for weak_learners in baseL:
                     if item == 'ratio':
-                        per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item])/10)
+                        per_dataset_avg.append(
+                            numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item]) / 10)
                     else:
-                        per_dataset_avg.append(numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item]))
+                        per_dataset_avg.append(
+                            numpy.mean(list_of_dicts_stats[dataset_index][method_index][weak_learners][item]))
 
                 y_values.append(per_dataset_avg)
 
@@ -374,8 +383,7 @@ def plot_overall_resource_stats_scores(methods, list_of_dicts_stats, output_dir,
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=6)
 
-        plt.savefig(output_dir +  item + ".png", bbox_inches='tight', dpi=200)
-
+        plt.savefig(output_dir + item + ".png", bbox_inches='tight', dpi=200)
 
 
 def plot_amort_vs_non_amort(methods, results, baseL, directory):
@@ -383,12 +391,13 @@ def plot_amort_vs_non_amort(methods, results, baseL, directory):
         os.makedirs(directory)
     colors = ['g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
     default_cycler = (cycler(color=colors) +
-                      cycler(linestyle=[ (0, (1, 1)), '--', '-.',
+                      cycler(linestyle=[(0, (1, 1)), '--', '-.',
                                         '-',
                                         (0, (5, 1)),
                                         '-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10))]))
-    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha', 'balanced_error']:
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha',
+              'balanced_error']:
         plt.figure(figsize=(7, 7))
         plt.rc('axes', prop_cycle=default_cycler)
 
@@ -397,14 +406,12 @@ def plot_amort_vs_non_amort(methods, results, baseL, directory):
         for k in range(0, len(methods)):
             res = results[k][i]
             steps = numpy.arange(0, len(res), step=1)
-            plt.plot(steps, res, label=methods[k] )
+            plt.plot(steps, res, label=methods[k])
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.065), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')
         plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
                     fancybox=True, framealpha=.30)
-
-
 
 
 def plot_costs_per_round(methods, results, baseL, directory):
@@ -442,10 +449,12 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
         os.makedirs(directory)
 
     # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c',  '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+              'black']
 
-    for i in ['pos_class_weights', 'bal_err', 'alpha']:
-    # for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
+    for i in ['bal_err', 'alpha', 'pos_class_weights']:
+        # for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
+        print (i)
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
         plt.grid(True)
@@ -458,7 +467,6 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
 
         plt.rc('axes', prop_cycle=default_cycler)
 
-
         for jj in range(0, len(methods)):
             if methods[jj] == 'RareBoost' and i == 'alpha':
                 res_pos = numpy.array([0. for j in range(0, baseL)])
@@ -469,8 +477,10 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                     res_neg += numpy.array(k[jj]['alpha_negative']) / float(len(results))
 
                 steps = numpy.arange(0, len(res_pos), step=1)
-                plt.plot(steps, res_pos,  label=methods[jj] + "-Pos." )
-                plt.plot(steps, res_neg,  label=methods[jj] + "-Neg." )
+                plt.plot(steps, res_pos, label=methods[jj] + "-Pos.")
+                plt.plot(steps, res_neg, label=methods[jj] + "-Neg.")
+                print("RareBoost-Pos.", res_pos )
+                print("RareBoost-Neg.", res_neg )
 
             else:
                 res = numpy.array([0. for j in range(0, baseL)])
@@ -478,33 +488,35 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
                     if res.shape[0] != numpy.array(k[jj][i]).shape[0]:
                         temp_list = list(numpy.array(k[jj][i]))
                         for missing in range(0, res.shape[0] - numpy.array(k[jj][i]).shape[0]):
-                            print(methods[jj], temp_list)
                             temp_list.append(temp_list[-1])
                         res += numpy.array(temp_list) / float(len(results))
                     else:
                         res += numpy.array(k[jj][i]) / float(len(results))
                 # plt.plot(steps, res, '-', label=methods[jj], linewidth=1, color=colors[jj])
-                plt.plot(steps, res,  label=methods[jj])
+                plt.plot(steps, res, label=methods[jj])
+                print(methods[jj], res)
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.145), ncol=4, shadow=False, fancybox=True, framealpha=1.0)
         plt.xlabel('Round')
         plt.savefig(directory + i + "_" + str(baseL) + ".png", bbox_inches='tight', dpi=200, shadow=False,
                     fancybox=True, framealpha=.30)
 
+
 def plot_costs_per_round_all_datasets_amort_vs_non_amort(methods, results, directory, baseL):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    colors = [ '#1f77b4', '#ff7f0e','#2ca02c',  '#9467bd', '#8c564b',
-               '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd', '#8c564b',
+              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
     default_cycler = (cycler(color=colors) +
-                      cycler(linestyle=[ (0, (1, 1)), '--', '-.',
+                      cycler(linestyle=[(0, (1, 1)), '--', '-.',
                                         '-',
                                         (0, (5, 1)),
                                         '-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10))]))
 
-    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha', 'balanced_error']:
+    for i in ['TPR_per_round', 'TNR_per_round', 'C_positive_per_round', 'C_negative_per_round', 'alpha',
+              'balanced_error']:
         steps = numpy.arange(0, baseL, step=1)
         plt.figure(figsize=(7, 7))
         plt.rc('axes', prop_cycle=default_cycler)
@@ -538,6 +550,7 @@ import matplotlib.patches as mpatches
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+
 
 def retrieve_n_class_color_cubic(N):
     '''
@@ -766,8 +779,8 @@ def plot_decision_boundary(model, dim_red_method='pca',
         ax.set_ylabel('Dimension reduced axis 2')
     ax.set_xlim(xrg)
     ax.set_ylim(yrg)
-    ax.set_xticks(np.arange(xrg[0], xrg[1], (xrg[1] - xrg[0])/5.))
-    ax.set_yticks(np.arange(yrg[0], yrg[1], (yrg[1] - yrg[0])/5.))
+    ax.set_xticks(np.arange(xrg[0], xrg[1], (xrg[1] - xrg[0]) / 5.))
+    ax.set_yticks(np.arange(yrg[0], yrg[1], (yrg[1] - yrg[0]) / 5.))
     ax.grid(True)
 
     return fig, ss, dr_model

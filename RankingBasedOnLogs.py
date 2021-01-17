@@ -6,7 +6,6 @@ from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
 from DataPreprocessing.load_mat_data import load_mat_data
 import sys
-from imblearn import datasets
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
 from DataPreprocessing.load_mushroom import load_mushroom
@@ -67,6 +66,8 @@ def load_datasets(dataset, names):
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
+        from imblearn import datasets
+
         data = datasets.fetch_datasets()[dataset]
         cl_names = ["feature_" + str(i) for i in range(0, data['data'].shape[1])]
         X = data['data']
@@ -82,11 +83,12 @@ def load_datasets(dataset, names):
     return output
 
 
-datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-                        'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-                        'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
-                        'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-                        'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
+                        'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                        'electricity',
+                        'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                        'thyroid_sick',
+                        'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
 dataset_names = set()
 list_of_stats = []

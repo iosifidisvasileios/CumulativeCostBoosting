@@ -14,7 +14,6 @@ from DataPreprocessing.load_mat_data import load_mat_data
 import pickle
 import os, sys
 from multiprocessing import Process
-from imblearn import datasets
 from AdaCC import AdaCC
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
@@ -86,6 +85,8 @@ def run_eval(dataset, baseL, methods):
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
+        from imblearn import datasets
+
         data = datasets.fetch_datasets()[dataset]
         cl_names = ["feature_" + str(i) for i in range(0, data['data'].shape[1])]
         X = data['data']

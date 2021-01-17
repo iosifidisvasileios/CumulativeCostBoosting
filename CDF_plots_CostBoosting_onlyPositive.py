@@ -17,12 +17,11 @@ import matplotlib
 import numpy
 import operator
 
-from imblearn import datasets
 from multiprocessing import Process
 from sklearn.metrics import f1_score, balanced_accuracy_score
 
 from Competitors.RareBoost import RareBoost
-from Competitors.AdaC1C3 import AdaCost
+from Competitors.CostBoostingAlgorithms import CostSensitiveAlgorithms
 from DataPreprocessing.load_mat_data import load_mat_data
 from AdaCC import AdaCC
 
@@ -82,6 +81,8 @@ def run_eval(dataset, base_learners, methods):
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
+        from imblearn import datasets
+
         data = datasets.fetch_datasets()[dataset]
         cl_names = ["feature_" + str(i) for i in range(0, data['data'].shape[1])]
         X = data['data']
@@ -210,7 +211,7 @@ def run_eval(dataset, base_learners, methods):
 
 def train_classifier(X_train, y_train, base_learners, method, cl_names):
     if method == 'AdaBoost':
-        clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners)
+        clf = CostSensitiveAlgorithms(algorithm='AdaBoost', n_estimators=base_learners)
         clf.fit(X_train, y_train)
 
     elif 'AdaCC' in method or 'AdaN-CC' in method:
@@ -258,7 +259,7 @@ def train_classifier(X_train, y_train, base_learners, method, cl_names):
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
     try:
         out = []
-        clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
+        clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
         clf.fit(X_train, y_train)
 
         out.append(balanced_accuracy_score(y_train, clf.predict(X_train)))
@@ -350,6 +351,7 @@ if __name__ == '__main__':
                             'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
                             'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
     only_for_positivies = []
 
     for baseL in [25, 200]:

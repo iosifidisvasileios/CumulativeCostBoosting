@@ -12,13 +12,13 @@ from sklearn.utils import (check_random_state,
                            compute_class_weight,
                            column_or_1d)
 from sklearn.utils.multiclass import check_classification_targets
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_is_fitted, _check_sample_weight
 from sklearn.metrics import balanced_accuracy_score
 
-__all__ = ['AdaCost']
+__all__ = ['CostSensitiveAlgorithms']
 
 
-class AdaCost(AdaBoostClassifier):
+class CostSensitiveAlgorithms(AdaBoostClassifier):
     """
     Implementation of the cost sensitive variants of AdaBoost; Adacost and AdaC1-3
 
@@ -67,7 +67,7 @@ class AdaCost(AdaBoostClassifier):
         self.error = 0
         self.debug = debug
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y ):
         """
         Build a boosted classifier from the training set (X, y).
 
@@ -80,52 +80,43 @@ class AdaCost(AdaBoostClassifier):
         :return: object; Return self
         """
         # Check parameters
+        # if self.learning_rate <= 0:
+        #     raise ValueError("learning_rate must be greater than zero")
+        #
+        # if (self.base_estimator is None or
+        #         isinstance(self.base_estimator, (BaseDecisionTree,
+        #                                          BaseEnsemble))):
+        #     DTYPE = np.float64
+        #     dtype = DTYPE
+        #     accept_sparse = 'csc'
+        # else:
+        #     dtype = None
+        #     accept_sparse = ['csr', 'csc']
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be greater than zero")
 
-        if (self.base_estimator is None or
-                isinstance(self.base_estimator, (BaseDecisionTree,
-                                                 BaseEnsemble))):
-            DTYPE = np.float64
-            dtype = DTYPE
-            accept_sparse = 'csc'
-        else:
-            dtype = None
-            accept_sparse = ['csr', 'csc']
+        # X, y = self._validate_data(X, y)
+        # self._validate_targets(y)
+        # sample_weight = _check_sample_weight(sample_weight, X, np.float64)
+        # sample_weight /= sample_weight.sum()
 
-        X, y = check_X_y(X, y, accept_sparse=accept_sparse, dtype=dtype,
-                         y_numeric=is_regressor(self))
-        #
         y = self._validate_targets(y)
-        if sample_weight is None:
-            sample_weight = np.copy(y).astype(float)
-            for n in range(len(self.classes)):
-                sample_weight[y == n] = self.class_weight_[n]
-        else:
-            sample_weight = check_array(sample_weight, ensure_2d=False)
+
+        sample_weight = np.copy(y).astype(float)
+        for n in range(len(self.classes)):
+            sample_weight[y == n] = self.class_weight_[n]
+
         # Check that the sample weights sum is positive
         if sample_weight.sum() <= 0:
             raise ValueError(
                 "Attempting to fit with a non-positive weighted number of samples.")
         sample_weight = sample_weight / sample_weight.sum(dtype=np.float64)
 
-        y = self._validate_targets(y)
 
-        # if sample_weight is None:
-        #     # Initialize weights to class weights
-        #     # assign class weight to each sample index
-        #     sample_weight = np.copy(y).astype(float)
-        #     init_sample_weight = 1 / len(y)
-        #     sample_weight = np.full(y.shape, init_sample_weight)
-        #     # for n in range(len(self.classes)):
-        #     #    sample_weight[y == n] = self.class_weight_[n]
-        # else:
-        #     sample_weight = check_array(sample_weight, ensure_2d=False)
-        # # Normalize existing weights
-        # # Check that the sample weights sum is positive
-        # if sample_weight.sum() <= 0:
-        #     raise ValueError(
-        #         "Attempting to fit with a non-positive weighted number of samples.")
+
+
+        if np.any(sample_weight < 0):
+            raise ValueError("sample_weight cannot contain negative weights")
 
         if self.algorithm is None:
             self.algorithm = "AdaCost"
@@ -145,12 +136,13 @@ class AdaCost(AdaBoostClassifier):
         if self.debug:
             self.predictions_array = np.zeros([X.shape[0], 2])
 
-        random_state = check_random_state(self.random_state)
+        random_state = check_random_state(1)
 
         for iboost in range(self.n_estimators):
             if self.debug:
                 self._class_weights_pos.append(sample_weight[y == 1].sum())
                 self._class_weights_neg.append(sample_weight[y != 1].sum())
+
 
             # Boosting step
             sample_weight, estimator_weight, estimator_error = self._boost(
@@ -158,7 +150,7 @@ class AdaCost(AdaBoostClassifier):
                 X, y,
                 sample_weight,
                 random_state)
-
+            # print('mu class debug', sample_weight, estimator_weight, estimator_error)
             if self.error == 1:
                 break
 
@@ -181,6 +173,25 @@ class AdaCost(AdaBoostClassifier):
 
         return self
 
+    def _validate_data(self, X, y=None):
+
+        # Accept or convert to these sparse matrix formats so we can
+        # use _safe_indexing
+        accept_sparse = ['csr', 'csc']
+        if y is None:
+            ret = check_array(X,
+                              accept_sparse=accept_sparse,
+                              ensure_2d=False,
+                              allow_nd=True,
+                              dtype=None)
+        else:
+            ret = check_X_y(X, y,
+                            accept_sparse=accept_sparse,
+                            ensure_2d=False,
+                            allow_nd=True,
+                            dtype=None,
+                            y_numeric=is_regressor(self))
+        return ret
     def _boost(self, iboost, X, y, sample_weight, random_state):
         """
         Implement a single boost.
@@ -203,12 +214,11 @@ class AdaCost(AdaBoostClassifier):
         :return: sample_weight {array-like of shape = [n_samples]}, estimator_weight {float}, estimator_error {float}
                 Returns updates values for sample weights, estimator weight and estimator error
         """
-        if len(np.argwhere(np.isnan(sample_weight))) != 0:
-            self.error = 1
-            return None, None, None
-        estimator = self._make_estimator(random_state=random_state)
+        # if len(np.argwhere(np.isnan(sample_weight))) != 0:
+        #     self.error = 1
+        #     return None, None, None
+        estimator = self._make_estimator(random_state=1)
         estimator.fit(X, y, sample_weight=sample_weight)
-
         y_predict = estimator.predict(X)
         if iboost == 0:
             self.classes_ = getattr(estimator, 'classes_', None)
@@ -228,14 +238,15 @@ class AdaCost(AdaBoostClassifier):
         incorrect = y_predict != y
 
         if self.algorithm == "AdaBoost" or self.algorithm == "AdaCost" or self.algorithm == "CSB1" \
-                or self.algorithm == "CSB2":
+                or self.algorithm == "CSB2" or self.algorithm == "CGAda":
             estimator_error = np.mean(np.average(incorrect, weights=sample_weight, axis=0))
+
         elif self.algorithm in ['AdaC1', 'AdaC2']:
             estimator_error = np.mean(np.average(incorrect, weights=sample_weight * self.cost_, axis=0))
         elif self.algorithm == "AdaC3":
             estimator_error = np.mean(np.average(incorrect, weights=sample_weight * np.power(self.cost_, 2), axis=0))
         else:
-            raise ValueError("Algorithms 'adacost', 'adac1', 'adac2' and 'adac3' are accepted;" \
+            raise ValueError("Algorithms 'adacost', 'CGAda', 'adac1', 'adac2' and 'adac3' are accepted;" \
                              " got {0}".format(self.algorithm))
 
         # Stop if classification is perfect
@@ -254,9 +265,12 @@ class AdaCost(AdaBoostClassifier):
             return None, None, None
 
         if self.algorithm == "AdaBoost" or self.algorithm == "AdaCost" or self.algorithm == "AdaC2" or \
-                self.algorithm == "CSB1" or self.algorithm == "CSB2":
-            estimator_weight = self.learning_rate * 0.5 * (
-                np.log((1. - estimator_error) / estimator_error))
+                self.algorithm == "CSB1" or self.algorithm == "CSB2"  or self.algorithm == "CGAda":
+            # estimator_weight = self.learning_rate * 0.5 * (
+            #     np.log((1. - estimator_error) / estimator_error))
+            estimator_weight = self.learning_rate * (
+                    np.log((1. - estimator_error) / estimator_error) +
+                    np.log(n_classes - 1.))
 
         elif self.algorithm == "AdaC1":
             estimator_weight = self.learning_rate * 0.5 * (
@@ -274,9 +288,12 @@ class AdaCost(AdaBoostClassifier):
 
         # Only boost the weights if it will fit again
         if iboost < self.n_estimators - 1:
-            if self.algorithm == "AdaBoost":
+            if self.algorithm == "AdaBoost" or self.algorithm == "CGAda":
                 nominator = sample_weight * np.exp(estimator_weight * incorrect * (sample_weight > 0))
                 sample_weight = nominator / np.sum(nominator)
+                # sample_weight *=            np.exp(estimator_weight * incorrect * (sample_weight > 0))
+
+
             elif self.algorithm == "AdaCost":
                 beta = np.copy(self.cost_).astype(float)
                 beta[y == y_predict] = np.array(list(map(lambda x: 0.5 * x + 0.5, self.cost_[y == y_predict])))
@@ -305,13 +322,13 @@ class AdaCost(AdaBoostClassifier):
                 raise ValueError("algorithm %s is not supported" % self.algorithm)
 
         return sample_weight, estimator_weight, estimator_error
-
-    def _validate_estimator(self):
-        """
-        Check the estimator and set the base_estimator_ attribute.
-        """
-        super(AdaBoostClassifier, self)._validate_estimator(
-            default=DecisionTreeClassifier(max_depth=1, class_weight=self.class_weight_))
+    #
+    # def _validate_estimator(self):
+    #     """
+    #     Check the estimator and set the base_estimator_ attribute.
+    #     """
+    #     super(AdaBoostClassifier, self)._validate_estimator(
+    #         default=DecisionTreeClassifier(max_depth=1, class_weight=self.class_weight_))
 
     def _validate_targets(self, y):
         """

@@ -5,6 +5,7 @@ from sklearn.ensemble import AdaBoostClassifier
 
 __all__ = ['AdaMEC']
 
+
 class AdaMEC(AdaBoostClassifier):
     """
     Implementation of the cost sensitive variants of AdaBoost; Adacost and AdaC1-3
@@ -70,23 +71,13 @@ class AdaMEC(AdaBoostClassifier):
         :return: object; Return self
         """
 
-        AdaBoostUncal = AdaBoostClassifier(algorithm='SAMME.R', n_estimators=self.n_estimators)
-        AdaBoostUncal = AdaBoostUncal.fit(X, y)
+        self.AdaBoostUncal = AdaBoostClassifier(algorithm='SAMME', n_estimators=self.n_estimators)
+        self.AdaBoostUncal.fit(X, y)
 
-        AdaBoostCal = CalibratedClassifierCV(AdaBoostUncal, cv="prefit", method=self.calibration_method)
-        AdaBoostCal.fit(X, y)
-        self.AdaBoostCal = AdaBoostCal
-        return AdaBoostCal
-
-    def set_costs(self, y, class_weight):
+    def set_costs(self, class_weight):
         # Check parameters
-        Pos = sum(y[np.where(y == 1)])
-        Neg = len(y) - Pos
-        C_FP = class_weight[0]
-        C_FN = class_weight[1]
-
-        self.C_FP_effective = C_FP * Neg / (C_FN * Pos + C_FP * Neg)
-        self.C_FN_effective = 1 - self.C_FP_effective
+        self.positive_weight = class_weight[1]
+        self.negative_weight = class_weight[0]
 
     def predict(self, X):
         """
@@ -99,13 +90,12 @@ class AdaMEC(AdaBoostClassifier):
                Matrix containing the input samples.
         :return: y_predicted; predicted labels for X
         """
-        scores_CalibratedAdaMEC = self.AdaBoostCal.predict_proba(X)[:, 1]  # Positive Class scores
+        y_pred = self.AdaBoostUncal.predict_proba(X)
 
-        y_pred_CalibratedAdaMEC = np.zeros(X.shape[0])
-        y_pred_CalibratedAdaMEC[np.where(
-            scores_CalibratedAdaMEC > self.C_FN_effective)] = 1  # Classifications, AdaMEC uses a shifted decision threshold (skew-sensitive)
+        y_pred_output = np.zeros(X.shape[0])
+        y_pred_output[np.where( self.positive_weight * y_pred[:, 1] > self.negative_weight * abs(y_pred[:, 0]))] = 1
 
-        return y_pred_CalibratedAdaMEC
+        return y_pred_output
 
     def predict_proba(self, X):
-        return self.AdaBoostCal.predict_proba(X)
+        return self.AdaBoostUncal.predict_proba(X)

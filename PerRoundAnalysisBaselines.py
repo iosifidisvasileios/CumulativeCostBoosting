@@ -6,7 +6,7 @@ import operator
 
 from sklearn.metrics import f1_score, balanced_accuracy_score
 
-from Competitors.AdaC1C3 import AdaCost
+from Competitors.CostBoostingAlgorithms import CostSensitiveAlgorithms
 from Competitors.RareBoost import RareBoost
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
@@ -19,7 +19,6 @@ import pickle
 from collections import Counter
 import os, sys
 from multiprocessing import Process
-from imblearn import datasets
 from AdaCC import AdaCC
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
@@ -94,6 +93,8 @@ def run_eval(dataset, baseL, methods):
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
+        from imblearn import datasets
+
         data = datasets.fetch_datasets()[dataset]
         cl_names = ["feature_" + str(i) for i in range(0, data['data'].shape[1])]
         X = data['data']
@@ -127,7 +128,7 @@ def run_eval(dataset, baseL, methods):
 
 def train_and_predict(X_train, y_train, base_learners, method):
     if method == 'AdaBoost':
-        clf = AdaCost(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
+        clf = CostSensitiveAlgorithms(algorithm='AdaBoost', n_estimators=base_learners, debug=True)
         clf.fit(X_train, y_train)
     elif 'AdaCC' in method:
         clf = AdaCC(n_estimators=base_learners, algorithm=method, debug=True)
@@ -179,7 +180,7 @@ def train_and_predict(X_train, y_train, base_learners, method):
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
     try:
         out = []
-        clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.}, debug=True)
+        clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.}, debug=True)
         clf.fit(X_train, y_train)
 
         out.append(f1_score(y_train, clf.predict(X_train)))
@@ -201,23 +202,15 @@ if __name__ == '__main__':
     if not os.path.exists("temp_preds_AdaCC"):
         os.makedirs("temp_preds_AdaCC")
 
-    baseLearners = [10]
+    baseLearners = [200]
     list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
                        'RareBoost']
 
-    # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-    #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-    #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
-    #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-    #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
-                            'electricity',
-                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
-                            'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
-
     for baseL in baseLearners:
         dicts_for_plots = []
         for dataset in datasets_list:

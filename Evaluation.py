@@ -1,12 +1,15 @@
 import warnings
 
+from Competitors.AdaMEC import AdaMEC
+from Competitors.CGAda import CGAda
+from Competitors.CGAda_Cal import CGAda_Cal
 from DataPreprocessing.load_rain_aus import load_rain_aus
 
 warnings.filterwarnings("ignore")
 
 from time import process_time
 
-from Competitors.AdaMECal import AdaMEC
+from Competitors.AdaMEC_Cal import AdaMEC_Cal
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
@@ -20,12 +23,11 @@ from collections import defaultdict, Counter
 import os, sys
 import operator
 from multiprocessing import Process
-from imblearn import datasets
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
 import time
 from AdaCC import AdaCC
-from Competitors.AdaC1C3 import AdaCost
+from Competitors.CostBoostingAlgorithms import CostSensitiveAlgorithms
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
 from DataPreprocessing.load_mushroom import load_mushroom
@@ -98,10 +100,11 @@ def run_eval(dataset, folds, iterations, baseL, methods):
         X, y, cl_names = load_mat_data(dataset)
     elif dataset == "rain_aus":
         X, y, cl_names = load_rain_aus()
-        print(y)
     elif dataset == "waveformM":
         X, y, cl_names = load_mat_data(dataset)
     else:
+        from imblearn import datasets
+
         data = datasets.fetch_datasets()[dataset]
         cl_names = ["feature_" + str(i) for i in range(0, data['data'].shape[1])]
         X = data['data']
@@ -169,10 +172,11 @@ def run_eval(dataset, folds, iterations, baseL, methods):
     plot_resource_stats_scores(methods, list_of_dicts_stats, "Images/Performance/" + dataset + "/Resource/", baseL)
     return list_of_dicts, list_of_dicts_stats
 
+
 def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names):
     if method == 'AdaBoost':
         t1_start = process_time()
-        clf = AdaCost(n_estimators=base_learners, algorithm=method)
+        clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
         t1_stop = process_time()
         oveall_time = t1_stop - t1_start
@@ -218,6 +222,40 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
             pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
         return
 
+    elif 'AdaMEC_Cal' in method:
+        counter_dict = Counter(list(y_train))
+
+        majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
+        minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
+        ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
+
+        t1_start = process_time()
+
+        clf = AdaMEC_Cal(n_estimators=base_learners, algorithm=method)
+        clf.fit(X_train, y_train)
+        best_score = -1
+        best_idx = 0
+        for idx, cost in enumerate(ratios):
+            class_weight = {minority: 1, majority: cost / 10.}
+            clf.set_costs(y_train, class_weight)
+            score = f1_score(y_train, clf.predict(X_train))
+            if best_score < score:
+                best_idx = idx
+                best_score = score
+        class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
+
+        clf.set_costs(y_train, class_weight)
+
+        t1_stop = process_time()
+        oveall_time = t1_stop - t1_start
+
+        with open('temp_preds/stats_' + method, 'wb') as filehandle:
+            pickle.dump([oveall_time, best_score, ratios[best_idx]], filehandle)
+
+        with open('temp_preds/' + method, 'wb') as filehandle:
+            # pickle.dump(clf.predict(X_test), filehandle)
+            pickle.dump([clf.predict(X_test), clf.predict_proba(X_test)], filehandle)
+        return
     elif 'AdaMEC' in method:
         counter_dict = Counter(list(y_train))
 
@@ -233,14 +271,14 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         best_idx = 0
         for idx, cost in enumerate(ratios):
             class_weight = {minority: 1, majority: cost / 10.}
-            clf.set_costs(y_train, class_weight)
+            clf.set_costs(class_weight)
             score = f1_score(y_train, clf.predict(X_train))
             if best_score < score:
                 best_idx = idx
                 best_score = score
         class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
 
-        clf.set_costs(y_train, class_weight)
+        clf.set_costs(class_weight)
 
         t1_stop = process_time()
         oveall_time = t1_stop - t1_start
@@ -316,7 +354,14 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
     try:
         out = []
         t1_start = process_time()
-        clf = AdaCost(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
+        if method == 'CGAda_Cal':
+            clf = CGAda_Cal(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
+        elif method == 'CGAda':
+            clf = CGAda(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
+        else:
+            clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method,
+                                          class_weight={min: 1, maj: ratio / 10.})
+
         clf.fit(X_train, y_train)
         t1_stop = process_time()
 
@@ -325,6 +370,7 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
         out.append(t1_stop - t1_start)
         with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
+        clf.fit(X_train, y_train)
     except:
         return
 
@@ -338,32 +384,29 @@ if __name__ == '__main__':
         os.makedirs("Images/Performance/")
 
     baseL = [25, 50, 75, 100, 125, 150, 175, 200]
+    baseL = [5]
 
     dicts_for_plots = []
     dicts_for_plots_stats = []
 
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
-    # list_of_methods = [ 'AdaN-CC1', 'AdaN-CC2']
-
-    # datasets_list = sorted(['mushroom', 'adult', 'wilt', 'credit', 'spam', 'bank', 'landsatM', 'musk2', 'isolet',
-    #                         'spliceM', 'semeion_orig', 'waveformM', 'abalone', 'car_eval_34', 'letter_img',
-    #                         'skin', 'eeg_eye', 'phoneme', 'electricity', 'scene',  # 'kdd' ,'diabetes',
-    #                         'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
-    #                         'wine_quality', 'us_crime', 'protein_homo', 'ozone_level', 'webpage', 'coil_2000'])
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda', 'CGAda_Cal', 'AdaCost', 'CSB1',
+                       'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
-                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                            'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                            'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
-    datasets_list = ['rain_aus']
+    datasets_list = ['abalone']
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
             dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=1, baseL=baseL,
                                                     methods=list_of_methods)
         else:
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL,
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=1, baseL=baseL,
                                                     methods=list_of_methods)
 
         dicts_for_plots.append(dataset_dict1)

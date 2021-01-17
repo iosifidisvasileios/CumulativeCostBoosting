@@ -55,7 +55,6 @@ def plot_the_lists(mean, stDev, output_dir, flag):
 list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
 measures = [ 'gmean', 'f1score', 'tpr', 'tnr','balanced_accuracy', 'auc', 'time']
 
-
 datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
                         'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
                         'electricity',
