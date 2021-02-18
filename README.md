@@ -1,4 +1,4 @@
-# AmortisedCostBoosting
+# Cumulative Cost Sensitive Boosting (AdaCC)
 
 This repo contains AdaCC method. AdaCC method is a dynamic cost-sensitive method which estimates the misclassification costs based on the behavior of the partial ensemble to minimize the balanced error.
 
@@ -15,14 +15,15 @@ The required libraries of this repo are the following:
 * imblearn==0.0
 * scikit_learn==0.22.2.post1
 
+The following example showcases how the weighting strategy of AdaCC differs from AdaBoost.
+
 <figure>
-  <img src="boost_toy.png.png" alt="AdaBoost">
+  <img src="boost_toy.png" alt="AdaBoost">
 </figure>
 
 <figure>
   <img src="adacc1_toy.png" alt="AdaCC1">
 </figure>
-
 
 <figure>
   <img src="adacc2_toy.png" alt="AdaCC2">
