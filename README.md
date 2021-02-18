@@ -3,10 +3,8 @@
 This repo contains AdaCC method. AdaCC method is a dynamic cost-sensitive method which estimates the misclassification costs based on the behavior of the partial ensemble to minimize the balanced error.
 
 
-```math
 $$SE = \frac{\sigma}{\sqrt{n}}$$
-```
-
+ 
 The following example showcases how the weighting strategy of AdaCC differs from AdaBoost.
 
 <figure>
