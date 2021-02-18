@@ -4,7 +4,7 @@ This repo contains AdaCC method. AdaCC method is a dynamic cost-sensitive method
 
 
 ```math
-SE = \frac{\sigma}{\sqrt{n}}
+$$SE = \frac{\sigma}{\sqrt{n}}$$
 ```
 
 The following example showcases how the weighting strategy of AdaCC differs from AdaBoost.
