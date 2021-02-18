@@ -52,7 +52,10 @@ def plot_the_lists(mean, stDev, output_dir, flag):
     plt.savefig(output_dir + ".png", bbox_inches='tight', dpi=200)
     plt.clf()
 
-list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+
+list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda', 'CGAda_Cal',
+                   'AdaCost', 'CSB1',
+                   'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 measures = [ 'gmean', 'f1score', 'tpr', 'tnr','balanced_accuracy', 'auc', 'time']
 
 datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
@@ -104,12 +107,13 @@ for item in measures:
                 tempList = line.replace("\n","").split(",")
                 if tempList[0] in list_of_methods:
                     if item != 'time' :
-                        dataset_performance[tempList[0]].append(float(tempList[baseL_index].split(" ")[0])/100.)
+                        print(tempList[baseL_index])
+                        dataset_performance[tempList[0]].append(float(tempList[baseL_index].split("+/-")[0])/100.)
                     else:
                         dataset_performance[tempList[0]].append(float(tempList[baseL_index]))
 
                     if item != 'time' :
-                        dataset_performance_stdev[tempList[0]].append(float(tempList[baseL_index].split(" ")[1].replace("(","").replace(")",""))/100.)
+                        dataset_performance_stdev[tempList[0]].append(float(tempList[baseL_index].split("+/-")[1].replace("(","").replace(")",""))/100.)
 
                     if line.startswith('RareBoost'):
                         # list_of_performance.append(dataset_performance)

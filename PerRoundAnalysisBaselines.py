@@ -123,6 +123,13 @@ def run_eval(dataset, baseL, methods):
                 list_of_dicts.append(update_stats(pickle.load(filehandle), False))
 
     plot_costs_per_round(methods, list_of_dicts, baseL, "Images/PerRoundBaselines/" + dataset + "/")
+
+    filelist = [f for f in os.listdir('temp_preds_AdaCC')]
+
+    for f in filelist:
+        os.remove(os.path.join('temp_preds_AdaCC', f))
+
+
     return list_of_dicts
 
 
@@ -162,19 +169,18 @@ def train_and_predict(X_train, y_train, base_learners, method):
 
         best_score = -1
         for ratio in ratios:
-            if os.path.exists('temp_preds/' + method + str(ratio)):
-                with open('temp_preds/' + method + str(ratio), 'rb') as filehandle:
+            if os.path.exists('temp_preds_AdaCC/' + method + str(ratio)):
+                with open('temp_preds_AdaCC/' + method + str(ratio), 'rb') as filehandle:
                     temp = pickle.load(filehandle)
                     if temp[0] > best_score:
                         best_score = temp[0]
                         clf = temp[1]
 
-            if os.path.exists('temp_preds/' + method + str(ratio)):
-                os.remove('temp_preds/' + method + str(ratio))
+            if os.path.exists('temp_preds_AdaCC/' + method + str(ratio)):
+                os.remove('temp_preds_AdaCC/' + method + str(ratio))
 
     with open('temp_preds_AdaCC/' + method, 'wb') as filehandle:
-        pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_alphas_],
-                    filehandle)
+        pickle.dump([clf._class_weights_pos, clf._class_weights_neg, clf.training_error, clf.estimator_alphas_],filehandle)
 
 
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
@@ -185,9 +191,10 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
 
         out.append(f1_score(y_train, clf.predict(X_train)))
         out.append(clf)
-        with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
+        with open('temp_preds_AdaCC/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
-    except:
+    except Exception as ex:
+        print(ex)
         return
 
 
@@ -203,17 +210,16 @@ if __name__ == '__main__':
         os.makedirs("temp_preds_AdaCC")
 
     baseLearners = [200]
-    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
-                       'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'CGAda','AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
                             'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
                             'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
+
     for baseL in baseLearners:
         dicts_for_plots = []
         for dataset in datasets_list:
             dicts_for_plots.append(run_eval(dataset=dataset, baseL=baseL, methods=list_of_methods))
-
         plot_costs_per_round_all_datasets(list_of_methods, dicts_for_plots, "Images/PerRoundBaselines/Overall/", baseL)

@@ -27,7 +27,9 @@ matplotlib.use('Agg')
 
 
 def plot_data(ranked_x, ranked_y, output_dir, filename):
-    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3','RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda',
+                       'CGAda_Cal', 'AdaCost', 'CSB1',
+                       'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
     list_of_results = [[] for i in list_of_methods]
     for i in range(0,len(ranked_x)):
         ranked_x[i] = ranked_x[i].replace("_", " ")

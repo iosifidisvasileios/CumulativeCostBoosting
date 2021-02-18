@@ -1,21 +1,17 @@
 import warnings
 
 from Competitors.AdaMEC import AdaMEC
-from Competitors.CGAda import CGAda
-from Competitors.CGAda_Cal import CGAda_Cal
 from DataPreprocessing.load_rain_aus import load_rain_aus
 
 warnings.filterwarnings("ignore")
 
 from time import process_time
 
-from Competitors.AdaMEC_Cal import AdaMEC_Cal
 from DataPreprocessing.load_diabetes import load_diabetes
 from DataPreprocessing.load_electricity import load_electricity
 from DataPreprocessing.load_phoneme import load_phoneme
 from DataPreprocessing.load_speed_dating import load_speed_dating
 
-from Competitors.RareBoost import RareBoost
 from DataPreprocessing.load_mat_data import load_mat_data
 
 import pickle
@@ -24,9 +20,12 @@ import os, sys
 import operator
 from multiprocessing import Process
 from sklearn.metrics import f1_score
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit, train_test_split
 import time
 from AdaCC import AdaCC
+from Competitors.CGAda_Cal import CGAda_Cal
+from Competitors.AdaMEC_Cal import AdaMEC_Cal
+from Competitors.RareBoost import RareBoost
 from Competitors.CostBoostingAlgorithms import CostSensitiveAlgorithms
 from DataPreprocessing.load_adult import load_adult
 from DataPreprocessing.load_wilt import load_wilt
@@ -129,7 +128,6 @@ def run_eval(dataset, folds, iterations, baseL, methods):
     for weak_learners in baseL:
         for item in list_of_dicts_stats:
             item[weak_learners] = defaultdict(list)
-    cnt = 0
 
     for samples in range(0, iterations):
 
@@ -139,7 +137,6 @@ def run_eval(dataset, folds, iterations, baseL, methods):
 
             # for weak_learners in baseL:
             for train_index, test_index in sss.split(X, y):
-                cnt += 1
 
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
@@ -174,6 +171,9 @@ def run_eval(dataset, folds, iterations, baseL, methods):
 
 
 def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names):
+    if "AdaCC" not in method or "AdaN-CC" not in method:
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.4, stratify=y_train)
+
     if method == 'AdaBoost':
         t1_start = process_time()
         clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method)
@@ -238,7 +238,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         for idx, cost in enumerate(ratios):
             class_weight = {minority: 1, majority: cost / 10.}
             clf.set_costs(y_train, class_weight)
-            score = f1_score(y_train, clf.predict(X_train))
+            score = f1_score(y_valid, clf.predict(X_valid))
             if best_score < score:
                 best_idx = idx
                 best_score = score
@@ -272,7 +272,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         for idx, cost in enumerate(ratios):
             class_weight = {minority: 1, majority: cost / 10.}
             clf.set_costs(class_weight)
-            score = f1_score(y_train, clf.predict(X_train))
+            score = f1_score(y_valid, clf.predict(X_valid))
             if best_score < score:
                 best_idx = idx
                 best_score = score
@@ -318,7 +318,7 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         processes = []
         for ratio in ratios:
             p = Process(target=train_competitors,
-                        args=(X_train, y_train, base_learners, method, majority, minority, ratio))
+                        args=(X_train, y_train, X_valid, y_valid, base_learners, method, majority, minority, ratio))
             p.start()
             processes.append(p)
         for p in processes:
@@ -350,14 +350,14 @@ def train_and_predict(X_train, y_train, X_test, base_learners, method, cl_names)
         return
 
 
-def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
+def train_competitors(X_train, y_train, X_valid, y_valid, base_learners, method, maj, min, ratio):
     try:
         out = []
         t1_start = process_time()
         if method == 'CGAda_Cal':
             clf = CGAda_Cal(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
-        elif method == 'CGAda':
-            clf = CGAda(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
+        # elif method == 'CGAda':
+        #     clf = CGAda(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
         else:
             clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method,
                                           class_weight={min: 1, maj: ratio / 10.})
@@ -365,12 +365,12 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
         clf.fit(X_train, y_train)
         t1_stop = process_time()
 
-        out.append(f1_score(y_train, clf.predict(X_train)))
+        out.append(f1_score(y_valid, clf.predict(X_valid)))
         out.append(clf)
         out.append(t1_stop - t1_start)
         with open('temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
-        clf.fit(X_train, y_train)
+        # clf.fit(X_train, y_train)
     except:
         return
 
@@ -383,13 +383,14 @@ if __name__ == '__main__':
     if not os.path.exists("Images/Performance/"):
         os.makedirs("Images/Performance/")
 
-    baseL = [25, 50, 75, 100, 125, 150, 175, 200]
-    baseL = [5]
+    # baseL = [25, 50, 75, 100, 125, 150, 175, 200]
+    baseL = [25, 50, 100, 200]
 
     dicts_for_plots = []
     dicts_for_plots_stats = []
 
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda', 'CGAda_Cal', 'AdaCost', 'CSB1',
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaN-CC1', 'AdaN-CC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda',
+                       'CGAda_Cal', 'AdaCost', 'CSB1',
                        'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
@@ -400,13 +401,14 @@ if __name__ == '__main__':
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
     datasets_list = ['abalone']
+
     for dataset in datasets_list:
         if dataset == 'kdd' or dataset == 'skin' or dataset == 'diabetes' or \
                 dataset == 'protein_homo' or dataset == 'webpage' or dataset == 'isolet':
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=1, baseL=baseL,
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=2, baseL=baseL,
                                                     methods=list_of_methods)
         else:
-            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=3, iterations=1, baseL=baseL,
+            dataset_dict1, dataset_dict2 = run_eval(dataset=dataset, folds=5, iterations=10, baseL=baseL,
                                                     methods=list_of_methods)
 
         dicts_for_plots.append(dataset_dict1)

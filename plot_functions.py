@@ -206,11 +206,10 @@ def plot_overall_data(method_names, list_of_dicts, output_dir, baseL):
             my_string = method_names[method_index]
 
             for pp in range(0, len(baseL)):
-                my_string += "," + str(float("%0.2f" % (y_values[pp] * 100))) + " (" + str(
-                    float("%0.2f" % (std_values[pp] * 100))) + ")"
+                my_string += "," + str(float("%0.2f" % (y_values[pp] * 100))) + "+/-" + str(float("%0.2f" % (std_values[pp] * 100)))
             print(my_string)
 
-        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.185), ncol=5)
+        plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.115), ncol=5)
         plt.savefig(output_dir + metric_index + ".png", bbox_inches='tight', dpi=200)
         plt.clf()
 
@@ -264,7 +263,7 @@ def plot_overall_resource_stats_time(methods, list_of_dicts_stats, output_dir, b
 
         print(my_string)
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.085), ncol=5)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.49, 1.115), ncol=5)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -449,23 +448,22 @@ def plot_costs_per_round_all_datasets(methods, results, directory, baseL):
         os.makedirs(directory)
 
     # colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato', 'indigo', 'lightskyblue']
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-              'black']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black', 'tomato']
 
-    for i in ['bal_err', 'alpha', 'pos_class_weights']:
-        # for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
+    # for i in ['bal_err', 'alpha', 'pos_class_weights']:
+    for i in ['neg_class_weights', 'pos_class_weights', 'bal_err', 'alpha']:
         print (i)
         steps = numpy.arange(0, baseL, step=1)
-        plt.figure(figsize=(7, 7))
         plt.grid(True)
         plt.rcParams.update({'font.size': 10.5})
         default_cycler = (cycler(color=colors) +
                           cycler(linestyle=['-', (0, (1, 1)), '--',
                                             (0, (5, 1)),
                                             '-', (0, (1, 1)), '--', '-.',
-                                            (0, (5, 10)), (0, (1, 1))]))
+                                            (0, (5, 10)), (0, (1, 1)), '-', '-.']))
 
         plt.rc('axes', prop_cycle=default_cycler)
+        plt.figure(figsize=(7, 7))
 
         for jj in range(0, len(methods)):
             if methods[jj] == 'RareBoost' and i == 'alpha':

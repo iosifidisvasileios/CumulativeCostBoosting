@@ -26,9 +26,10 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 import numpy as np
+import six
 from sklearn.base import  ClassifierMixin, is_regressor
 from sklearn.ensemble import BaseEnsemble
-from sklearn.externals import six
+# from sklearn.externals import six
 from sklearn.tree import BaseDecisionTree, DecisionTreeClassifier
 from sklearn.utils.validation import has_fit_parameter, check_is_fitted, check_array, check_X_y, check_random_state
 
@@ -139,14 +140,17 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
 
         self.predictions_array = np.zeros([ X.shape[0], 2])
 
-
+        self.smp_w_tmp = []
+        self.estimator_tmp = []
+        self.alpha_tmp = []
         for iboost in range(self.n_estimators):
-            sample_weight_sum = np.sum(sample_weight)
 
+            sample_weight_sum = np.sum(sample_weight)
             # Stop if the sum of sample weights has become non-positive
             if sample_weight_sum <= 0:
                 break
             sample_weight /= sample_weight_sum
+            self.smp_w_tmp.append(np.copy(sample_weight))
 
             # Boosting step
             sample_weight, alpha, error = self._boost(
@@ -407,6 +411,8 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
         estimator.fit(X, y, sample_weight=sample_weight)
         y_predict = estimator.predict(X)
 
+
+
         # index = list(estimator.tree_.compute_feature_importances()).index(1.)
         # if self.attributes is not None:
         #     self.employed_attributes[self.attributes[index].split("?")[0]] += 1
@@ -425,6 +431,8 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
             return sample_weight, 1., 0.
 
         n_classes = self.n_classes_
+
+
 
         # Stop if the error is at least as bad as random guessing
         if estimator_error >= 1. - (1. / n_classes):
@@ -447,6 +455,11 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
             self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
 
             self.calculate_cost(y, y_predict)
+
+        # self.smp_w_tmp.append(sample_weight)
+        self.estimator_tmp.append(estimator)
+        self.alpha_tmp.append(alpha)
+
 
         if self.debug:
             # self.training_error.append(1 - accuracy_score(y, self.predict(X)))

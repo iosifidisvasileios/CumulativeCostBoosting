@@ -273,13 +273,13 @@ def plot_overall_data(method_names, list_dataset_dicts, output_dir):
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(25, 5) )
     plt.rcParams.update({'font.size': 14})
 
-
-    colors = [ '#1f77b4', '#ff7f0e','#2ca02c', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', 'black']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+              '#17becf', 'black', 'orange']
     default_cycler = (cycler(color=colors) +
                       cycler(linestyle=['-', (0, (1, 1)), '--',
                                         (0, (5, 1)),
                                         '-', (0, (1, 1)), '--', '-.',
-                                        (0, (5, 10)), (0, (1, 1))]))
+                                        (0, (5, 10)), (0, (1, 1)), '-', (0, (1, 1))]))
 
     plt.rc('axes', prop_cycle=default_cycler)
 
@@ -332,7 +332,7 @@ def plot_overall_data(method_names, list_dataset_dicts, output_dir):
         cnt += 1
     fig.subplots_adjust(wspace=0.125, hspace=0)
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0, 1.185), ncol=10)
+    plt.legend(loc='upper center', bbox_to_anchor=(-0.0, 1.185), ncol=11)
     plt.savefig(output_dir + "cdf_only_positivies.png", bbox_inches='tight', dpi=200)
 
 
@@ -345,7 +345,7 @@ if __name__ == '__main__':
     if not os.path.exists("temp"):
         os.makedirs("temp")
 
-    list_of_methods = ['AdaCC1', 'AdaCC2', 'AdaBoost', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'CGAda', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
                             'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
@@ -354,7 +354,7 @@ if __name__ == '__main__':
 
     only_for_positivies = []
 
-    for baseL in [25, 200]:
+    for baseL in [25,  200]:
         overall_list = []
         for dataset in datasets_list:
             print(dataset, baseL)

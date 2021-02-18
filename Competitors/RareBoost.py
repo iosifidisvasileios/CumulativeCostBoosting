@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from sklearn.base import ClassifierMixin, is_regressor
 from sklearn.ensemble import BaseEnsemble
-from sklearn.externals import six
+import six
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils.extmath import softmax
@@ -103,6 +103,8 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         self._class_weights_neg = []
         self.training_error = []
 
+        self.smp_w_tmp = []
+        self.estimator_tmp = []
         random_state = check_random_state(self.random_state)
         for iboost in range(self.n_estimators):
 
@@ -113,6 +115,7 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
                 break
 
             sample_weight /= sample_weight_sum
+            self.smp_w_tmp.append(np.copy(sample_weight))
 
             # Boosting step
             sample_weight, estimator_weight_pos, estimator_weight_neg, estimator_error = self._boost(
@@ -184,6 +187,9 @@ class BaseWeightBoosting(six.with_metaclass(ABCMeta, BaseEnsemble)):
         if self.estimators_ is None or len(self.estimators_) == 0:
             raise ValueError("Estimator not fitted, "
                              "call `fit` before `feature_importances_`.")
+
+        self.estimator_weights_ = np.mean([self.estimator_weights_pos[:self.classifiers],  self.estimator_weights_neg[:self.classifiers]], axis=0)
+
 
         try:
             norm = self.estimator_weights_.sum()
@@ -354,6 +360,7 @@ class RareBoost(BaseWeightBoosting, ClassifierMixin):
 
         estimator = self._make_estimator(random_state=random_state)
         estimator.fit(X, y, sample_weight=sample_weight)
+        self.estimator_tmp.append(estimator)
 
         y_predict = estimator.predict(X)
 

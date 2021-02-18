@@ -2,13 +2,10 @@ import pickle
 import time
 import warnings
 import matplotlib
-from matplotlib.colors import ListedColormap
 from imblearn.datasets import make_imbalance
+from matplotlib.colors import ListedColormap
 from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
 from sklearn.preprocessing import StandardScaler
-
-from Competitors.AdaMEC import AdaMEC
-from Competitors.CGAda_Cal import CGAda_Cal
 
 matplotlib.use('Agg')
 
@@ -35,7 +32,7 @@ import operator
 from multiprocessing import Process
 
 from imblearn import datasets
-from sklearn.metrics import f1_score, balanced_accuracy_score, recall_score
+from sklearn.metrics import f1_score, balanced_accuracy_score
 from AdaCC import AdaCC
 from Competitors.CostBoostingAlgorithms import CostSensitiveAlgorithms
 from DataPreprocessing.load_adult import load_adult
@@ -106,53 +103,70 @@ def get_dataset(dataset):
 
 
 def run_eval(dataset, base_list, methods):
-    for cluster_std in range(1, 11):
+    data_list_of_predictions = []
+    datasets_list = []
+    if dataset == 'moon':
+        X, y = make_moons(n_samples=1000, noise=0.25, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 375}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_moons(n_samples=1000, noise=0.25, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 250}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_moons(n_samples=1000, noise=0.25, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 125}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+    elif dataset == 'circle':
+        X, y = make_circles(n_samples=1000, noise=0.25, factor=.7, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 375}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_circles(n_samples=1000, noise=0.25, factor=.7, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 250}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_circles(n_samples=1000, noise=0.25, factor=.7, shuffle=True)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 125}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
 
-        for imbalance in range(1, 11):
-            if dataset == 'moon':
-                X, y = make_moons(n_samples=5000, noise=cluster_std / 10., random_state=int(time.time()))
-            elif dataset == 'bloob':
-                X, y = make_blobs(n_samples=5000, centers=2, cluster_std=cluster_std, random_state=int(time.time()))
-            ratio = int(1000 * imbalance / 10.)
-            print("----- init ----- for cluster_std", cluster_std, 'and imbalance ratio', imbalance / 10., 'positives', ratio)
-            X, y = make_imbalance(X, y, sampling_strategy={0: 1000, 1: ratio})
+    elif dataset == 'bloob':
+        X, y = make_blobs(n_samples=1000, centers=2, cluster_std=4.5, random_state=1)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 375}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_blobs(n_samples=1000, centers=2, cluster_std=4.5, random_state=1)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 250}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+        X, y = make_blobs(n_samples=1000, centers=2, cluster_std=4.5, random_state=1)
+        X, y = make_imbalance(X, y, sampling_strategy={0: 500, 1: 125}, random_state=1)
+        X, x_test, y, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+        datasets_list.append((X, y, x_test, y_test))
+    else:
+        X_orig, y_orig, _ = get_dataset(dataset)
+        # X_orig = SparsePCA(n_components=2).fit_transform(X_orig)
+        X_orig = PCA(n_components=2).fit_transform(X_orig)
+        X, x_test, y, y_test = train_test_split(X_orig, y_orig, test_size=0.25, stratify=y_orig, random_state=17)
+        datasets_list = [X, y, x_test, y_test]
 
-            data_list_of_predictions = []
+    for baseL in base_list:
+        list_of_predictors = []
+        processes = []
+        for method in methods:
+            p = Process(target=train_and_predict, args=(datasets_list[0], datasets_list[1], baseL, method))
+            p.start()
+            processes.append(p)
+        for p in processes:
+            p.join()
+        for index, method in enumerate(methods):
+            with open('boundary_temp_preds/' + method, 'rb') as filehandle:
+                list_of_predictors.append(joblib.load(filehandle))
+        data_list_of_predictions.append(list_of_predictors)
 
-            for baseL in base_list:
-                list_of_predictors = []
-                processes = []
-                for method in methods:
-                    p = Process(target=train_and_predict, args=(X, y, baseL, method))
-                    p.start()
-                    processes.append(p)
-                for p in processes:
-                    p.join()
-                for index, method in enumerate(methods):
-                    with open('boundary_temp_preds/' + method, 'rb') as filehandle:
-                        list_of_predictors.append(joblib.load(filehandle))
-                data_list_of_predictions.append(list_of_predictors)
-
-                temp_methods = list(methods)
-                scores = []
-                for clf in list_of_predictors:
-                    scores.append(recall_score(y, clf.predict(X)))
-                zipped_list = zip(scores, temp_methods)
-                sorted_pairs = sorted(zipped_list, reverse=True)
-
-                if 'AdaCC' not in sorted_pairs[0][1]:
-                    # print("failed for cluster_std", cluster_std, 'and imbalance ratio', imbalance, "best method=", sorted_pairs[0][1], sorted_pairs)
-                    break
-
-                if (baseL == 200):
-                    print("SUCCESS for cluster_std", cluster_std, 'and imbalance ratio', imbalance)
-                    draw_results(dataset, base_list, data_list_of_predictions, methods,  cluster_std, imbalance, X,y)
-
-def draw_results(dataset, base_list, data_list_of_predictions, methods, cluster_std, imbalance, X,y):
-
-    datasets_list = [X,y,X,y]
-
-    figure = plt.figure(figsize=(30, 15))
+    figure = plt.figure(figsize=(27, 12))
     plt.rcParams.update({'font.size': 16})
 
     i = 1
@@ -161,7 +175,7 @@ def draw_results(dataset, base_list, data_list_of_predictions, methods, cluster_
         # just plot the dataset first
         cm = plt.cm.RdBu
         cm_bright = ListedColormap(['#FF0000', '#00FF00'])
-        ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 1, i)
+        ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 2, i)
 
         if ds_cnt == 0:
             ax.set_title("Training data")
@@ -170,7 +184,8 @@ def draw_results(dataset, base_list, data_list_of_predictions, methods, cluster_
         y_min, y_max = datasets_list[0][:, 1].min() - 1, datasets_list[0][:, 1].max() + 1
         xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
 
-        ax.scatter(datasets_list[0][:, 0], datasets_list[0][:, 1], c=datasets_list[1], cmap=cm_bright, alpha=0.6, edgecolors='k')
+        ax.scatter(datasets_list[0][:, 0], datasets_list[0][:, 1], c=datasets_list[1], cmap=cm_bright, alpha=0.6,
+                   edgecolors='k')
         ax.set_xlim(xx.min(), xx.max())
         ax.set_ylim(yy.min(), yy.max())
         ax.set_xticks(())
@@ -185,27 +200,33 @@ def draw_results(dataset, base_list, data_list_of_predictions, methods, cluster_
         elif ds_cnt == 3:
             ax.set_ylabel('200 weak learners')
 
-        # i += 1
-        # ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 2, i)
-        # if ds_cnt == 0:
-        #     ax.set_title("Testing data")
-        # xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
-        # ax.scatter(datasets_list[2][:, 0], datasets_list[2][:, 1], c=datasets_list[3], cmap=cm_bright, alpha=1,edgecolors='k')
-        # ax.set_xlim(xx.min(), xx.max())
-        # ax.set_ylim(yy.min(), yy.max())
-        # ax.set_xticks(())
-        # ax.set_yticks(())
+        i += 1
+        ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 2, i)
+
+        if ds_cnt == 0:
+            ax.set_title("Testing data")
+
+        # x_min, x_max = datasets_list[2][:, 0].min() - 1, datasets_list[2][:, 0].max() + 1
+        # y_min, y_max = datasets_list[2][:, 1].min() - 1, datasets_list[2][:, 1].max() + 1
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+
+        ax.scatter(datasets_list[2][:, 0], datasets_list[2][:, 1], c=datasets_list[3], cmap=cm_bright, alpha=1,
+                   edgecolors='k')
+        ax.set_xlim(xx.min(), xx.max())
+        ax.set_ylim(yy.min(), yy.max())
+        ax.set_xticks(())
+        ax.set_yticks(())
 
         i += 1
 
         for name, clf in zip(methods, data_list_of_predictions[ds_cnt]):
-            # score = balanced_accuracy_score(datasets_list[3], clf.predict(datasets_list[2]))*100
-            score = recall_score(datasets_list[3], clf.predict(datasets_list[2])) * 100
+            score = balanced_accuracy_score(datasets_list[3], clf.predict(datasets_list[2]))
+            print(name, score)
             Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
             Z = Z.reshape(xx.shape)
-            ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 1, i)
-            # ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 2, i)
+            ax = plt.subplot(len(base_list), len(data_list_of_predictions[ds_cnt]) + 2, i)
             ax.contourf(xx, yy, Z, cmap=cm_bright, alpha=.9)
+            # ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cm_bright, edgecolors='k')
             # Plot the testing points
             ax.scatter(datasets_list[2][:, 0], datasets_list[2][:, 1], c=datasets_list[3], cmap=cm_bright,
                        edgecolors='k', alpha=.9)
@@ -215,19 +236,15 @@ def draw_results(dataset, base_list, data_list_of_predictions, methods, cluster_
             ax.set_yticks(())
             if ds_cnt == 0:
                 ax.set_title(name)
-            ax.text(xx.max() - .3, yy.min() + .3, ('%.1f' % score).lstrip('0'), size=20, weight='bold', horizontalalignment='right')
+            ax.text(xx.max() - .3, yy.min() + .3, ('%.3f' % score).lstrip('0'), size=20, weight='bold', horizontalalignment='right')
             i += 1
 
     plt.tight_layout()
     plt.show()
-    plt.savefig("Images/Boundaries/" + dataset + "_noise=" + str(cluster_std) + "_imb=" + str(imbalance) + ".png",
-                bbox_inches='tight', dpi=200)
+    plt.savefig("Images/Boundaries/" + dataset + ".png", bbox_inches='tight', dpi=200)
 
 
 def train_and_predict(X_train, y_train, base_learners, method):
-    ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
-    ratios = [ 2., 4., 6., 8., 10.]
-
     if method == 'AdaBoost':
         clf = CostSensitiveAlgorithms(algorithm='AdaBoost', n_estimators=base_learners)
         clf.fit(X_train, y_train)
@@ -240,29 +257,7 @@ def train_and_predict(X_train, y_train, base_learners, method):
 
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
-        # ratios = [ 2., 4., 6., 8., 1.]
-
-        clf = AdaMEC(n_estimators=base_learners, algorithm=method)
-        clf.fit(X_train, y_train)
-        best_score = -1
-        best_idx = 0
-        for idx, cost in enumerate(ratios):
-            class_weight = {minority: 1, majority: cost / 10.}
-            clf.set_costs(class_weight)
-            score = f1_score(y_train, clf.predict(X_train))
-            # score = balanced_accuracy_score(y_train, clf.predict(X_train))
-            if best_score < score:
-                best_idx = idx
-                best_score = score
-        class_weight = {minority: 1, majority: ratios[best_idx] / 10.}
-        clf.set_costs(class_weight)
-
-    elif 'AdaMEC_Cal' in method:
-        counter_dict = Counter(list(y_train))
-
-        majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
-        minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
-        # ratios = [ 2., 4., 6., 8., 10.]
+        ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 10.]
 
         clf = AdaMEC_Cal(n_estimators=base_learners, algorithm=method)
         clf.fit(X_train, y_train)
@@ -286,7 +281,7 @@ def train_and_predict(X_train, y_train, base_learners, method):
         counter_dict = Counter(list(y_train))
         majority = max(counter_dict.items(), key=operator.itemgetter(1))[0]
         minority = max(counter_dict.items(), key=operator.itemgetter(0))[0]
-        # ratios = [ 2., 4., 6., 8., 9.9]
+        ratios = [1., 2., 3., 4., 5., 6., 7, 8., 9., 9.99]
 
         processes = []
         for ratio in ratios:
@@ -321,13 +316,10 @@ def train_and_predict(X_train, y_train, base_learners, method):
 def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
     try:
         out = []
-        if method == 'CGAda_Cal':
-            clf = CGAda_Cal(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
-        else:
-            clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method,
-                                          class_weight={min: 1, maj: ratio / 10.})
+        clf = CostSensitiveAlgorithms(n_estimators=base_learners, algorithm=method, class_weight={min: 1, maj: ratio / 10.})
         clf.fit(X_train, y_train)
         out.append(f1_score(y_train, clf.predict(X_train)))
+        # out.append(balanced_accuracy_score(y_train, clf.predict(X_train)))
         out.append(clf)
         with open('boundary_temp_preds/' + method + str(ratio), 'wb') as filehandle:
             pickle.dump(out, filehandle)
@@ -335,79 +327,22 @@ def train_competitors(X_train, y_train, base_learners, method, maj, min, ratio):
         return
 
 
-def run_eval_circle(dataset, base_list, methods):
-    for cluster_std in range(1, 11):
-
-        for fact in  range(1, 10):
-
-            for imbalance in range(1, 11):
-
-                X, y = make_circles(n_samples=2000, noise=cluster_std/10., factor=fact/10., shuffle=True, random_state=100)
-
-
-                ratio = int(1000 * imbalance / 10.)
-                print("----- init ----- for cluster_std", cluster_std, 'and factor', fact,'and imbalance ratio', imbalance / 10., 'positives',
-                      ratio)
-                X, y = make_imbalance(X, y, sampling_strategy={0: 1000, 1: ratio})
-
-                data_list_of_predictions = []
-
-                for baseL in base_list:
-                    list_of_predictors = []
-                    processes = []
-                    for method in methods:
-                        p = Process(target=train_and_predict, args=(X, y, baseL, method))
-                        p.start()
-                        processes.append(p)
-                    for p in processes:
-                        p.join()
-                    for index, method in enumerate(methods):
-                        with open('boundary_temp_preds/' + method, 'rb') as filehandle:
-                            list_of_predictors.append(joblib.load(filehandle))
-                    data_list_of_predictions.append(list_of_predictors)
-
-                    temp_methods = list(methods)
-                    scores = []
-                    for clf in list_of_predictors:
-                        scores.append(recall_score(y, clf.predict(X)))
-                    zipped_list = zip(scores, temp_methods)
-                    sorted_pairs = sorted(zipped_list, reverse=True)
-
-                    if 'AdaCC' not in sorted_pairs[0][1]:
-                        break
-
-                    if (baseL == 200):
-                        print("SUCCESS for cluster_std", cluster_std, 'and fator', fact, 'and imbalance ratio', imbalance)
-                        draw_results(dataset, base_list, data_list_of_predictions, methods,  cluster_std, imbalance, X,y)
-
-
 if __name__ == '__main__':
     if not os.path.exists("boundary_temp_preds"):
         os.makedirs("boundary_temp_preds")
     if not os.path.exists("Images/Boundaries"):
         os.makedirs("Images/Boundaries")
-
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaMEC', 'AdaMEC_Cal', 'CGAda',
-                       'CGAda_Cal', 'AdaCost', 'CSB1',
-                       'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaMEC', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3',
+                       'RareBoost', 'AdaCC1', 'AdaCC2']
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
-                            'electricity',
-                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
-                            'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
     # run_eval(dataset=['adult', 'optical_digits', 'musk2' ], baseL=200, methods=list_of_methods)
     # for data in datasets_list:
     #     print (data)
     #     run_eval(dataset=data, base_list=[25, 50, 100, 200], methods=list_of_methods)
-    # run_eval(dataset='bloob', base_list=[1,2 ], methods=list_of_methods)
-    # run_eval(dataset='wine_quality', base_list=[1, 2, 3, 4], methods=list_of_methods)
-    run_eval(dataset='bloob', base_list=[25, 50, 100, 200], methods=list_of_methods)
-    run_eval(dataset='bloob', base_list=[25, 50, 100, 200], methods=list_of_methods)
-    run_eval(dataset='bloob', base_list=[25, 50, 100, 200], methods=list_of_methods)
-    # run_eval(dataset='moon', base_list=[25, 50, 100, 200], methods=list_of_methods)
-    # run_eval_circle(dataset='circle', base_list=[25, 50, 100, 200], methods=list_of_methods)
-
-
+    # run_eval(dataset='wine_quality', base_list=[1 ], methods=list_of_methods)
+    run_eval(dataset='wine_quality', base_list=[25, 50, 100, 200], methods=list_of_methods)

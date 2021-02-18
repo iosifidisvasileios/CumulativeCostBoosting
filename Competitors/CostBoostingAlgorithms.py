@@ -127,6 +127,8 @@ class CostSensitiveAlgorithms(AdaBoostClassifier):
 
         # Clear any previous fit results
         self.estimators_ = []
+        self.smp_w_tmp = []
+        self.estimator_tmp = []
 
         self.training_error = []
         self._class_weights_pos = []
@@ -143,6 +145,7 @@ class CostSensitiveAlgorithms(AdaBoostClassifier):
                 self._class_weights_pos.append(sample_weight[y == 1].sum())
                 self._class_weights_neg.append(sample_weight[y != 1].sum())
 
+            self.smp_w_tmp.append(np.copy(sample_weight))
 
             # Boosting step
             sample_weight, estimator_weight, estimator_error = self._boost(
@@ -192,6 +195,44 @@ class CostSensitiveAlgorithms(AdaBoostClassifier):
                             dtype=None,
                             y_numeric=is_regressor(self))
         return ret
+
+    @property
+    def feature_importances_(self):
+        """Return the feature importances (the higher, the more important the
+           feature).
+
+        Returns
+        -------
+        feature_importances_ : array, shape = [n_features]
+        """
+        if self.estimators_ is None or len(self.estimators_) == 0:
+            raise ValueError("Estimator not fitted, "
+                             "call `fit` before `feature_importances_`.")
+
+        try:
+            norm = self.estimator_alphas_.sum()
+            return (sum(weight * clf.feature_importances_ for weight, clf
+                        in zip(self.estimator_alphas_, self.estimators_))
+                    / norm)
+
+        except AttributeError:
+            raise AttributeError(
+                "Unable to compute feature importances "
+                "since base_estimator does not have a "
+                "feature_importances_ attribute")
+
+    def _validate_X_predict(self, X):
+        """Ensure that X is in the proper format"""
+        if (self.base_estimator is None or
+                isinstance(self.base_estimator,
+                           (BaseDecisionTree))):
+            X = check_array(X, accept_sparse='csr', dtype=np.float64)
+
+        else:
+            X = check_array(X, accept_sparse=['csr', 'csc', 'coo'])
+
+        return X
+
     def _boost(self, iboost, X, y, sample_weight, random_state):
         """
         Implement a single boost.
@@ -236,6 +277,7 @@ class CostSensitiveAlgorithms(AdaBoostClassifier):
 
         # Instances incorrectly classified
         incorrect = y_predict != y
+        self.estimator_tmp.append(estimator)
 
         if self.algorithm == "AdaBoost" or self.algorithm == "AdaCost" or self.algorithm == "CSB1" \
                 or self.algorithm == "CSB2" or self.algorithm == "CGAda":

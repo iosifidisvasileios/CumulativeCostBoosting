@@ -1,6 +1,5 @@
 # coding: utf-8
 import numpy as np
-from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import AdaBoostClassifier
 
 __all__ = ['AdaMEC']

@@ -127,7 +127,7 @@ def run_eval(dataset, base_learners, methods):
                       cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10)),
                                         (0, (5, 1)),
-                             '-', (0, (1, 1)), '--', '-.',
+                                        '-', (0, (1, 1)), '--', '-.',
                                         (0, (5, 10))]))
 
     ax1.set_prop_cycle(default_cycler)
@@ -252,13 +252,13 @@ def plot_overall_data(method_names, list_dataset_dicts, base_learners, output_di
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(20, 4))
     plt.rcParams.update({'font.size': 12})
 
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'dimgray', 'peru', 'hotpink', 'tomato']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+              '#17becf', 'black', 'orange']
     default_cycler = (cycler(color=colors) +
-                      cycler(linestyle=['-', (0, (1, 1)), '--', '-.',
-                                        (0, (5, 10)),
+                      cycler(linestyle=['-', (0, (1, 1)), '--',
                                         (0, (5, 1)),
-                             '-', (0, (1, 1)), '--', '-.',
-                                        (0, (5, 10))]))
+                                        '-', (0, (1, 1)), '--', '-.',
+                                        (0, (5, 10)), (0, (1, 1)), '-', (0, (1, 1))]))
 
     ax1.set_prop_cycle(default_cycler)
     ax2.set_prop_cycle(default_cycler)
@@ -319,12 +319,12 @@ def plot_overall_data(method_names, list_dataset_dicts, base_learners, output_di
         # ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx, color=colors[cnt])
         # ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx, color=colors[cnt])
         # ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx, color=colors[cnt])
-        ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx )
-        ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx )
-        ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx )
+        ax1.plot(avg_edges_pos, avg_cdf_pos / avg_cdf_pos[-1], label=method_idx)
+        ax2.plot(avg_edges_neg, avg_cdf_neg / avg_cdf_neg[-1], label=method_idx)
+        ax3.plot(avg_edges_overall, avg_cdf_overall / avg_cdf_overall[-1], label=method_idx)
         cnt += 1
 
-    plt.legend(loc='upper center', bbox_to_anchor=(-0.7, 1.305), ncol=5)
+    plt.legend(loc='upper center', bbox_to_anchor=(-0.7, 1.205), ncol=11)
     plt.savefig(output_dir + "cdf_" + str(base_learners) + ".png", bbox_inches='tight', dpi=200)
 
 
@@ -337,14 +337,16 @@ if __name__ == '__main__':
     if not os.path.exists("temp"):
         os.makedirs("temp")
 
-    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
+    list_of_methods = ['AdaBoost', 'AdaCC1', 'AdaCC2', 'CGAda', 'AdaCost', 'CSB1', 'CSB2', 'AdaC1', 'AdaC2', 'AdaC3', 'RareBoost']
 
     datasets_list = sorted(['adult', 'wilt', 'credit', 'spam', 'bank', 'musk2', 'isolet',
-                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme', 'electricity',
-                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid', 'thyroid_sick',
+                            'abalone', 'car_eval_34', 'letter_img', 'protein_homo', 'skin', 'eeg_eye', 'phoneme',
+                            'electricity',
+                            'scene', 'mammography', 'optical_digits', 'pen_digits', 'satimage', 'sick_euthyroid',
+                            'thyroid_sick',
                             'wine_quality', 'us_crime', 'ozone_level', 'webpage', 'coil_2000'])
 
-    for baseL in [25, 200]:
+    for baseL in [25, 50, 100, 200]:
         overall_list = []
         for dataset in datasets_list:
             print(dataset, baseL)
