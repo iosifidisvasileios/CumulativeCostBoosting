@@ -114,13 +114,13 @@ def run_eval(dataset, base_learners, methods):
             # print (method, model.feature_importances_)
             raw_data[method] = model.feature_importances_
             f_num = len(model.feature_importances_)
-    index = ["Attribute " + str(k) for k in range(1, f_num+1)]
+    index = ["Feature " + str(k) for k in range(1, f_num+1)]
     # index = ["Atrribute 1","Atrribute 2","Atrribute 3","Atrribute 4","Atrribute 5","Atrribute 6"]
     df = pd.DataFrame(raw_data, index=index)
     df = df.transpose()
 
     ax = df.plot.bar(stacked=True,alpha=0.75, rot=25)
-    ax.set_ylabel("Attribute importance")
+    ax.set_ylabel("Feature importance")
     ax.set_xlabel("Methods")
     ax.legend(loc='center left', bbox_to_anchor=(0.1, 01.07), ncol=3)  # here is the magic
 
