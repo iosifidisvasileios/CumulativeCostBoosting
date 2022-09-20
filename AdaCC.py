@@ -340,9 +340,7 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
                  learning_rate=1.,
                  algorithm='AdaCC1',
                  random_state=None,
-                 attributes=None,
-                 amortised=True,
-                 debug=False):
+                 attributes=None):
 
         super(AdaCC, self).__init__(
             base_estimator=base_estimator,
@@ -351,11 +349,9 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
             attributes=attributes,
             random_state=random_state)
 
-        self.debug = debug
         self.algorithm = algorithm
         self.attributes = attributes
         self.employed_attributes = defaultdict(int)
-        self.amortised = amortised
 
     def fit(self, X, y, sample_weight=None):
         """Build a boosted classifier from the training set (X, y).
@@ -446,32 +442,12 @@ class AdaCC(BaseWeightBoosting, ClassifierMixin):
         alpha = self.learning_rate * (np.log((1. - estimator_error) / estimator_error) + np.log(n_classes - 1.))
         self.estimator_alphas_[iboost] = alpha
 
-        if self.amortised:
-            self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
-            self.calculate_cost(y, self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0))
-            # this operation is too slow. replaced it with the above computations
-            # self.calculate_cost(y, self.predict(X))
-        else:
-            self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
-
-            self.calculate_cost(y, y_predict)
+        self.predictions_array += (estimator.predict(X) == self.classes_[:, np.newaxis]).T * alpha
+        self.calculate_cost(y, self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0))
 
         # self.smp_w_tmp.append(sample_weight)
         self.estimator_tmp.append(estimator)
         self.alpha_tmp.append(alpha)
-
-
-        if self.debug:
-            # self.training_error.append(1 - accuracy_score(y, self.predict(X)))
-            self.cost_pos.append(self.cost_positive)
-            self.cost_neg.append(self.cost_negative)
-            self._class_weights_pos.append(sample_weight[y == 1].sum())
-            self._class_weights_neg.append(sample_weight[y != 1].sum())
-
-            tn, fp, fn, tp  =confusion_matrix(y, self.classes_.take(np.argmax(self.predictions_array, axis=1), axis=0), labels=[0, 1] ).ravel()
-            self._tpr.append((float(tp))/(tp + fn))
-            self._tnr.append((float(tn))/(tn + fp))
-            self.training_error.append(1 - ((float(tp)) / (tp + fn) + (float(tn)) / (tn + fp)) / 2.)
 
         if not iboost == self.n_estimators - 1:
 

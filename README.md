@@ -16,36 +16,4 @@ The following example showcases how the weighting strategy of AdaCC differs from
   <img src="adacc2_toy.png" alt="AdaCC2">
 </figure>
 
-
-
-It is implemented in python 3.8.
-The required libraries of this repo are the following:
-
-* joblib==0.14.1
-* pandas==1.0.1
-* mlxtend==0.17.2
-* scipy==1.4.1
-* imbalanced_learn==0.6.2
-* numpy==1.13.3
-* matplotlib==2.1.1
-* imblearn==0.0
-* scikit_learn==0.22.2.post1
-
-To replicate the experiments on the 27 real-world datasets (already included in the repo), run the Evaluation.py which includes the following competitors:
-
-* AdaBoost
-* AdaMEC
-* AdaMEC-Cal.
-* AdaCost
-* AdaC1
-* AdaC2
-* AdaC3
-* CGAda
-* CGAda-Cal.
-* CSB1
-* CSB1
-* RareBoost
-
-and our methods:
-* AdaCC1
-* AdaCC2
+Check run_example.py in order to see how easy is to use AdaCC1 and/or AdaCC2.
