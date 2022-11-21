@@ -16,4 +16,15 @@ The following example showcases how the weighting strategy of AdaCC differs from
   <img src="adacc2_toy.png" alt="AdaCC2">
 </figure>
 
-Check run_example.py in order to see how easy is to use AdaCC1 and/or AdaCC2.
+Check run_example.py in order to see how to use AdaCC1 and/or AdaCC2.
+
+In case you employ this method in your work, use this as a citation point:
+
+@article{iosifidis2022adacc,
+  title={AdaCC: cumulative cost-sensitive boosting for imbalanced classification},
+  author={Iosifidis, Vasileios and Papadopoulos, Symeon and Rosenhahn, Bodo and Ntoutsi, Eirini},
+  journal={Knowledge and Information Systems},
+  pages={1--38},
+  year={2022},
+  publisher={Springer}
+}
