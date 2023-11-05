@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "cumulative-cost-boosting"
 version = "0.1.2"
-description = ""
+description = "Parameter free cost-sensitive adaptive boosting"
 authors = ["Dr. Vasileios Iosifidis <billiosifidis@gmail.com>"]
 license = "MIT"
 readme = "README.md"
