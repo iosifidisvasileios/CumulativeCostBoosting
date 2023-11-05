@@ -3,9 +3,8 @@ from sklearn.metrics import balanced_accuracy_score, accuracy_score, f1_score, r
 	roc_auc_score, average_precision_score, confusion_matrix
 from sklearn.model_selection import StratifiedKFold
 
-from AdaCC import AdaCC
 from imbalanced_ensemble import datasets
-
+from cumulative_cost_boosting import AdaCC
 
 def calculate_performance(labels, predictions):
 	output = dict()
@@ -45,10 +44,10 @@ for dataset in datasets_all:
 		X_train, X_test = X[train_index], X[test_index]
 		y_train, y_test = y[train_index], y[test_index]
 
-		clf_cc1 = AdaCC(n_estimators=50, algorithm='AdaCC1')
+		clf_cc1 = AdaCC(n_estimators=250, algorithm='AdaCC1')
 		clf_cc1.fit(X_train, y_train)
 
-		clf_cc2 = AdaCC(n_estimators=50, algorithm='AdaCC2')
+		clf_cc2 = AdaCC(n_estimators=250, algorithm='AdaCC2')
 		clf_cc2.fit(X_train, y_train)
 
 		print(dataset, fold, 'ada_cc1', calculate_performance(y_test, [clf_cc1.predict(X_test), clf_cc1.predict_proba(X_test)]))

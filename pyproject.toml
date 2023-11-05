@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "cumulative-cost-boosting"
+version = "0.1.2"
+description = ""
+authors = ["Dr. Vasileios Iosifidis <billiosifidis@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "cumulative_cost_boosting"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+joblib = "^0.14.1"
+pandas = "^1.5.0"
+scipy = "^1.9.3"
+scikit-learn = "^1.0.2"
+imbalanced_learn = "^0.6.2"
+numpy = "^1.24.4"
+imblearn = "^0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
